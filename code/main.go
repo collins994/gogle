@@ -20,6 +20,18 @@ func main() {
 			case sax.EventEndDocument: { 
 				fmt.Printf("finish parsing %v\n", filename);
 			} 
+
+			case sax.EventStartTag: { 
+				fmt.Printf("start tag: %s\n", parserEvent.Characters.String());
+			} 
+
+			case sax.EventEndTag: { 
+				fmt.Printf("end tag: %s\n", parserEvent.Characters.String());
+			} 
+
+			case sax.EventCharacters: { 
+				fmt.Printf("Characters: %s\n", parserEvent.Characters.String());
+			}
 		}
 	})
 }
