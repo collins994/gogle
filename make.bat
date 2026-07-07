@@ -26,4 +26,10 @@ if "%1" == "clean" (
 	exit /b
 )
 
+if "%1" == "tags" (
+	echo building tags
+	ctags -R .
+	EXIT /B
+)
+
 echo [ERROR]: unknown option: %1
