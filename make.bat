@@ -6,7 +6,7 @@ if "%1" == "" (
 
 if "%1" == "build" (
 	pushd build
-	go build -o gogle.exe ..\code
+	go build -gcflags="all=-N -l" -o gogle.exe ..\code
 	popd
 	exit /b
 )
@@ -21,7 +21,7 @@ if "%1" == "run" (
 
 if "%1" == "clean" (
 	pushd build
-	del *
+	del gogle.exe
 	popd
 	exit /b
 )

@@ -2,10 +2,25 @@ package main
 
 import (
 	"github.com/collins994/gogle/code/sax"
+	"log"
 )
 
 func main() {
-	sax.ParseHTMLFile("sample.html", func(event *sax.Event, err error){
+	// var filename = "build/sample.html";
+	var filename = "sample.html";
+	sax.ParseHTMLFile(filename, func(event *sax.Event, err error){
+		if err != nil {
+			log.Fatalf("%v", err);
+		}
+
+		switch(event.Type) {
+			case sax.EventTypeStartDocument: println("start parsing", filename);
+			case sax.EventTypeEndDocument: println("finish parsing", filename);
+			case sax.EventTypeOpeningTag: println("start tag: ", string(event.Tag));
+			case sax.EventTypeClosingTag: println("closing tag: ", string(event.Tag));
+			case sax.EventTypeAttribute: println("Attribute, key: ", string(event.Attribute.Key), " value: ", string(event.Attribute.Value));
+			case sax.EventTypeUnknown: println("Uknown Event");
+		}
 	})
 }
 

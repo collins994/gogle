@@ -3,6 +3,7 @@ package sax
 import (
 	"errors"
 	"os"
+	"fmt"
 )
 
 /*
@@ -21,13 +22,18 @@ const (
 	EventTypeOpeningTag                     // triggered right after the h in <html> is read (and other tags too)
 	EventTypeClosingTag                     // triggered right after the / in </html> is read (and other tags too)
 	EventTypeAttribute                      // triggered right after the h in <a href="example.com"> is read
+	EventTypeUnknown                        // used to signal that an event.type is not set
 )
 
 type Event struct {
 	Type      EventType
-	Text      []byte            // defined/changes at EventTypeTextNode
-	Tag       []byte            // defined/changes at EventTypeOpeningTag, and EventTypeClosingTag
-	Attribute map[string]string // defined/changes at EventTypeAttribute
+	Text      []byte   // defined/changes at EventTypeTextNode
+	Tag       []byte   // defined/changes at EventTypeOpeningTag, and EventTypeClosingTag
+	Attribute struct { // defined/changes at EventTypeAttribute
+		Key      []byte
+		Value    []byte
+		HasValue bool
+	}
 }
 
 type fileStruct struct {
@@ -38,25 +44,228 @@ type fileStruct struct {
 }
 
 var (
-	InvalidFilePath = errors.New("Invalid file path")
+	ErrorInvalidFilePath       = errors.New("Invalid file path")
+	ErrorInvalidAttributeValue = errors.New("Invalid attribute value")
 )
 
-const (
-	parserStateStart int = iota
+var (
+	skipWhiteSpace            = true
+	dontSkipWhiteSpace        = false
+	consumeFirstCharacter     = true
+	dontConsumeFirstCharacter = false
 )
 
 func ParseHTMLFile(filename string, callbackFunction func(*Event, error)) {
 	var fs fileStruct
-	var parserState = parserStateStart
-	var nextbyte byte;
+	var event = Event{
+		Type: EventTypeUnknown,
+		Text: []byte{},
+		Tag:  []byte{},
+		// Attribute: map[string]string{},
+		Attribute: struct {
+			Key      []byte
+			Value    []byte
+			HasValue bool
+		}{
+			Key:      make([]byte, 1024), // an entire kilobyte for the key :)
+			Value:    make([]byte, 1024), // an entire kilobyte for the value :)
+			HasValue: false,
+		},
+	}
 
 	if file, err := os.Open(filename); err != nil {
-		callbackFunction(nil, InvalidFilePath)
+		callbackFunction(nil, ErrorInvalidFilePath)
 		return
 	} else {
 		fs.file = file
 		fs.index = 0
 		fs.buffer = make([]byte, 1024)
+	}
+	event.Type = EventTypeStartDocument
+	callbackFunction(&event, nil)
+	event.Type = EventTypeUnknown
+
+	goto stateStart
+stateStart:
+	{
+		//decide the state based on the first non-whitespace byte in the stream
+		var nextbyte = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+		if nextbyte == 0 { // end of file
+			event.Type = EventTypeEndDocument
+			callbackFunction(&event, nil)
+			event.Type = EventTypeUnknown
+			return
+		}
+		if nextbyte == '<' {
+			goto stateOpeningTag;
+		} else {
+			goto stateCharacters;
+		}
+
+		// switch nextbyte {
+		// case '<':
+		// 	goto stateOpeningTag
+		// default:
+		// 	{
+		// 		println("Unexpected character: ", string(nextbyte))
+		// 	}
+		// }
+	}
+
+stateOpeningTag:
+	{
+		nextByte(&fs, skipWhiteSpace, consumeFirstCharacter)
+		var nextbyte = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter) // skip any space after the < eg  <   div>
+		if nextbyte == '/' {
+			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+			goto stateClosingTag
+		}
+		if nextbyte == '!' {
+			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+			goto stateComment
+		}
+		// consider <div>, <div class="">
+		/*
+			TODO(collins994): read the bytes up to the first whitespace (marking the end of "div", and a possible begining of attributes) or >(marking the end of the entire tag),
+		*/
+		event.Tag = event.Tag[:0]
+		for { // read "div"
+			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+			if nextbyte == ' ' || nextbyte == '\n' || nextbyte == '\t' || nextbyte == '\r' || nextbyte == '>' {
+				event.Type = EventTypeOpeningTag
+				callbackFunction(&event, nil)
+				event.Type = EventTypeUnknown
+				if nextbyte == '>' {
+					nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+					goto stateStart // no attributes
+				}
+				goto stateAttribute
+			}
+			event.Tag = append(event.Tag, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter))
+		}
+
+		goto stateStart
+	}
+
+stateClosingTag:
+	{
+		event.Tag = event.Tag[:0];
+		// println("TODO stateClosingTag!")
+		// TODO: find a way to inform the user if we get a space in the closing tag
+		var nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter);
+		if nextbyte == '/' {
+			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+			goto stateClosingTag;
+		}
+		for {
+			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter);
+			if nextbyte == '>' {
+				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+				event.Type = EventTypeClosingTag;
+				callbackFunction(&event, nil);
+				event.Type = EventTypeUnknown;
+				goto stateStart;
+			}
+			event.Tag = append(event.Tag, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter));
+		}
+	}
+
+stateComment:
+	{
+		println("TODO stateComment!")
+	}
+
+stateAttribute:
+	{
+		event.Attribute.Key = event.Attribute.Key[:0]
+		event.Attribute.Value = event.Attribute.Value[:0]
+		// consider <a    href="colins">
+		// skip any whitespace before the attribute
+		var nextbyte = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+		if nextbyte == '>' { // end of the tag,
+			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+			event.Type = EventTypeAttribute
+			callbackFunction(&event, nil)
+			event.Type = EventTypeUnknown
+			goto stateStart
+		}
+		// we are reading an attribute key (href);
+		// read untill we hit a '=' or a space or a >
+		for {
+			event.Attribute.Key = append(event.Attribute.Key, nextByte(&fs, skipWhiteSpace, consumeFirstCharacter))
+			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+			if nextbyte == '=' { // eg <a href="collins">
+				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+				goto stateAttributeValue
+			}
+			if nextbyte == '>' { // eg <a blackButton>
+				// an attribute with no value; eg <a blackButton> TODO: find a way to merge this with if nextbyte ==
+				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+				event.Type = EventTypeAttribute
+				event.Attribute.HasValue = false
+				callbackFunction(&event, nil)
+				event.Type = EventTypeUnknown
+				goto stateStart
+			}
+			if nextbyte == ' ' {
+				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+				nextbyte = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == '=' { // eg <a href = "collins">
+					nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+					goto stateAttributeValue
+				}
+				if nextbyte == '>' { // eg <a blackButton    >
+					nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+					event.Type = EventTypeAttribute
+					event.Attribute.HasValue = false
+					callbackFunction(&event, nil)
+					event.Type = EventTypeUnknown
+					goto stateStart
+				}
+				// an attribute with no value; eg <a blackButton>
+				event.Type = EventTypeAttribute
+				event.Attribute.HasValue = false
+				callbackFunction(&event, nil)
+				event.Type = EventTypeUnknown
+				goto stateAttribute
+			}
+		}
+
+	stateAttributeValue:
+		{
+			// the first character of a value should be a '"'
+			//TODO: find a way to inform the user when a value starts with any character other than '"'
+			nextbyte = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+			if nextbyte == '"' {
+				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+				goto stateAttributeValue
+			}
+			// read up until '"' or >
+			// TODO: find a way to inform the user  if we get a > before a closing '"'
+			for {
+				nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == '>' || nextbyte == '"' {
+					nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+					event.Type = EventTypeAttribute
+					event.Attribute.HasValue = true
+					if nextbyte == '>' {
+						callbackFunction(&event, fmt.Errorf("%w, Missing closing \"", ErrorInvalidAttributeValue))
+						event.Type = EventTypeUnknown
+						goto stateStart
+					} else { // nextbyte == '"'
+						callbackFunction(&event, nil)
+						event.Type = EventTypeUnknown
+						goto stateAttribute
+					}
+				}
+			event.Attribute.Value = append(event.Attribute.Value, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter))	
+			}
+		}
+	}
+
+stateCharacters:
+	{
+		println("TODO stateCharacters");
 	}
 }
 
@@ -93,10 +302,12 @@ readFile:
 			}
 		}
 	}
-	
-	var nextbyte = fs.buffer[fs.index];
-	if consumeFirstCharacter { fs.index++; }
-	return nextbyte;
+
+	var nextbyte = fs.buffer[fs.index]
+	if consumeFirstCharacter {
+		fs.index++
+	}
+	return nextbyte
 }
 
 // type EventType int
