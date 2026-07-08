@@ -2,6 +2,7 @@
 
 if "%1" == "" (
 	echo USAGE: make ^<build/run^>
+	exit /b
 )
 
 if "%1" == "build" (
@@ -10,7 +11,6 @@ if "%1" == "build" (
 	popd
 	exit /b
 )
-
 
 if "%1" == "run" (
 	pushd build
@@ -29,6 +29,11 @@ if "%1" == "clean" (
 if "%1" == "tags" (
 	echo building tags
 	ctags -R .
+	EXIT /B
+)
+
+if "%1" == "push" (
+	git push https://github.com/collins994/gogle main
 	EXIT /B
 )
 
