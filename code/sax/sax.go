@@ -2,8 +2,8 @@ package sax
 
 import (
 	"errors"
-	"os"
 	"fmt"
+	"os"
 )
 
 /*
@@ -97,19 +97,10 @@ stateStart:
 			return
 		}
 		if nextbyte == '<' {
-			goto stateOpeningTag;
+			goto stateOpeningTag
 		} else {
-			goto stateCharacters;
+			goto stateCharacters
 		}
-
-		// switch nextbyte {
-		// case '<':
-		// 	goto stateOpeningTag
-		// default:
-		// 	{
-		// 		println("Unexpected character: ", string(nextbyte))
-		// 	}
-		// }
 	}
 
 stateOpeningTag:
@@ -120,9 +111,13 @@ stateOpeningTag:
 			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
 			goto stateClosingTag
 		}
-		if nextbyte == '!' {
+		if nextbyte == '!' { // we may be going for a comment, check for sequence !--
 			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
-			goto stateComment
+			var nextbyte = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) 
+			if nextbyte == '-' && nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter) == '-' {
+				goto stateComment
+			}
+			fs.index--; // put back the first '-' we read
 		}
 		// consider <div>, <div class="">
 		/*
@@ -149,30 +144,44 @@ stateOpeningTag:
 
 stateClosingTag:
 	{
-		event.Tag = event.Tag[:0];
-		// println("TODO stateClosingTag!")
+		event.Tag = event.Tag[:0]
 		// TODO: find a way to inform the user if we get a space in the closing tag
-		var nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter);
+		var nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
 		if nextbyte == '/' {
 			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
-			goto stateClosingTag;
+			goto stateClosingTag
 		}
 		for {
-			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter);
+			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
 			if nextbyte == '>' {
 				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
-				event.Type = EventTypeClosingTag;
-				callbackFunction(&event, nil);
-				event.Type = EventTypeUnknown;
-				goto stateStart;
+				event.Type = EventTypeClosingTag
+				callbackFunction(&event, nil)
+				event.Type = EventTypeUnknown
+				goto stateStart
 			}
-			event.Tag = append(event.Tag, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter));
+			event.Tag = append(event.Tag, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter))
 		}
 	}
 
 stateComment:
 	{
-		println("TODO stateComment!")
+		// read  upto the closing -->
+		var nextbyte byte
+		for {
+			nextbyte = nextByte(&fs, skipWhiteSpace, consumeFirstCharacter)
+			// nested if, to check a sequence --> (end of comment)
+			if nextbyte == '-' {
+				nextbyte = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+				if nextbyte == '-' {
+					nextbyte = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+					if nextbyte == '>' { // we've reached the end of the comment
+						println("comments");
+						goto stateStart
+					}
+				}
+			}
+		}
 	}
 
 stateAttribute:
@@ -199,7 +208,7 @@ stateAttribute:
 				goto stateAttributeValue
 			}
 			if nextbyte == '>' { // eg <a blackButton>
-				// an attribute with no value; eg <a blackButton> TODO: find a way to merge this with if nextbyte ==
+				// an attribute with no value; eg <a blackButton> 
 				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
 				event.Type = EventTypeAttribute
 				event.Attribute.HasValue = false
@@ -258,14 +267,35 @@ stateAttribute:
 						goto stateAttribute
 					}
 				}
-			event.Attribute.Value = append(event.Attribute.Value, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter))	
+				event.Attribute.Value = append(event.Attribute.Value, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter))
 			}
 		}
 	}
 
 stateCharacters:
 	{
-		println("TODO stateCharacters");
+		// read up to a whitespace or a < symbol, and emit an event
+		event.Text = event.Text[:0]
+		var nextbyte byte
+		for {
+			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+			if nextbyte == '<' { // end of the characters
+				if len(event.Text) > 0{
+					event.Type = EventTypeTextNode
+					callbackFunction(&event, nil)
+					event.Type = EventTypeUnknown
+				}
+				goto stateStart
+			}
+			if nextbyte == ' ' || nextbyte == '\n' || nextbyte == '\t' || nextbyte == '\r' {
+				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
+				event.Type = EventTypeTextNode
+				callbackFunction(&event, nil)
+				event.Type = EventTypeUnknown
+				goto stateCharacters
+			}
+			event.Text = append(event.Text, nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter))
+		}
 	}
 }
 
@@ -309,187 +339,3 @@ readFile:
 	}
 	return nextbyte
 }
-
-// type EventType int
-//
-// const (
-// 	EventCharacters EventType = iota
-// 	EventStartDocument
-// 	EventEndDocument
-// 	EventStartTag
-// 	EventEndTag
-// )
-//
-// type Event struct {
-// 	Type       EventType
-// 	Characters strings.Builder   // only defined at EventCharacters
-// 	Attributes map[string]string // only defined at EventStartTag
-// 	Tag        string            // only defined at EventStartTag, and EventEndTag
-// }
-//
-// type htmlFile struct {
-// 	file         *os.File
-// 	index        int
-// 	buffer       []byte
-// 	bufferLength int
-// }
-//
-// const (
-// 	peekChar    = 0
-// 	consumeChar = 1
-// )
-//
-// var (
-// 	ErrorUnexpectedEndOfFile = errors.New("Unexpected end of file")
-// 	// ErrorUnexpectedEndOfFile = func(filename string) error {return errors.New("")}
-// )
-//
-// func ParseFileHTML(filename string, callbackFunction func(*Event, error)) {
-// 	var hfile = htmlFile{}
-// 	hfile.buffer = make([]byte, 1024)
-// 	var nextChar byte
-// 	var event = Event{
-// 		Characters: strings.Builder{},
-// 		Attributes: map[string]string{},
-// 	}
-//
-// 	if f, err := os.Open(filename); err != nil {
-// 		callbackFunction(nil, err)
-// 		return // there's nothing we can do :)
-// 	} else {
-// 		hfile.file = f
-// 		defer hfile.file.Close()
-// 	}
-// 	callbackFunction(&Event{Type: EventStartDocument}, nil)
-//
-// 	// process the data in buffer,
-// 	// read a character at a time , decide the state
-// 	goto determineState
-// determineState:
-// 	{
-// 		nextChar = nextCharacter(&hfile, peekChar)
-// 		if nextChar == 0 {
-// 			event.Type = EventEndDocument
-// 			callbackFunction(&event, nil)
-// 			return
-// 		}
-// 		// consume and skip whitespace
-// 		if nextChar == ' ' || nextChar == '\n' || nextChar == '\t' || nextChar == '\r' {
-// 			nextCharacter(&hfile, consumeChar)
-// 			goto determineState
-// 		}
-// 		switch nextChar {
-// 		case '<':
-// 			goto parseTag
-// 		default:
-// 			goto parsePlainCharacters
-// 		}
-//
-// 	}
-//
-// parseTag:
-// 	{
-// 		// event.Characters = strings.Builder{}
-// 		var err = event.Characters.WriteByte(nextCharacter(&hfile, consumeChar)) // we are consuming a character that we have already peeked,
-// 		if err != nil {
-// 			fmt.Printf("[FATAL]: can't write to event.Characters.Builder\n")
-// 		}
-// 		nextChar = nextCharacter(&hfile, peekChar)
-// 		// TODO: write code to handle and end of file before the closing symbol >
-// 		if nextChar == 0 {
-// 			callbackFunction(&event, ErrorUnexpectedEndOfFile)
-// 			goto determineState
-// 		}
-//
-// 		if nextChar == '/' { // parsing a closing tag
-// 			event.Type = EventEndTag
-// 			// read up untill the > symbol
-// 			for {
-// 				event.Characters.WriteByte(nextCharacter(&hfile, consumeChar)) // we've already peeked this character
-// 				nextChar = nextCharacter(&hfile, peekChar)
-// 				// TODO: write code to handle and end of file before the closing symbol >
-// 				// maybe we should just call the call back function with EventEndTag
-// 				if nextChar == 0 {
-// 					callbackFunction(&event, fmt.Errorf("(%s) %w", filename, ErrorUnexpectedEndOfFile))
-// 					goto determineState
-// 				}
-// 				if nextChar == '>' {
-// 					event.Characters.WriteByte(nextCharacter(&hfile, consumeChar)) // we've already peeked this character
-// 					callbackFunction(&event, nil)
-// 					goto determineState
-// 				}
-// 			}
-// 		}
-//
-// 		// parsing a comment
-// 		if nextChar == '!' {
-// 			// read up untill the > symbol
-// 			for {
-// 				nextCharacter(&hfile, consumeChar)
-// 				nextChar = nextCharacter(&hfile, peekChar)
-// 				if nextChar == '>' {
-// 					nextCharacter(&hfile, consumeChar)
-// 					goto determineState
-// 				}
-// 			}
-// 		}
-//
-// 		// parsing an opening tag
-// 		event.Type = EventStartTag
-// 		// event.Attributes = map[string]string{};
-// 		// read up untill the > symbol
-// 		for {
-// 			event.Characters.WriteByte(nextCharacter(&hfile, consumeChar)) // we've already peeked this character
-// 			nextChar = nextCharacter(&hfile, peekChar)
-// 			if nextChar == 0 {
-// 				callbackFunction(&event, fmt.Errorf("(%s) %w", filename, ErrorUnexpectedEndOfFile))
-// 				goto determineState
-// 			}
-// 			if nextChar == '>' {
-// 				event.Characters.WriteByte(nextCharacter(&hfile, consumeChar)) // we've already peeked this character
-// 				callbackFunction(&event, nil)
-// 				goto determineState
-// 			}
-// 		}
-// 	}
-//
-// parsePlainCharacters:
-// 	{
-// 		event.Type = EventCharacters
-// 		// event.Characters = strings.Builder{};
-// 		// read until an < symbol
-// 		for {
-// 			event.Characters.WriteByte(nextCharacter(&hfile, consumeChar)) // we've already peeked this character
-// 			nextChar = nextCharacter(&hfile, peekChar)
-// 			// if we get an eof before the next tag opening symbol <
-// 			if nextChar == 0 {
-// 				callbackFunction(&event, fmt.Errorf("(%s) %w", filename, ErrorUnexpectedEndOfFile))
-// 				goto determineState
-// 			}
-// 			if nextChar == '<' {
-// 				callbackFunction(&event, nil)
-// 				goto determineState
-// 			}
-// 		}
-// 		goto determineState
-// 	}
-// }
-//
-// // reads and returns the next character in the file
-// // returns 0 at the end of the file
-// func nextCharacter(file *htmlFile, peekOrConsumeChar int) byte {
-// 	if file.index >= file.bufferLength {
-// 		bytesRead, err := file.file.Read(file.buffer) // read a kilobyte into buffer
-// 		if err != nil {
-// 			return 0
-// 		}
-// 		file.bufferLength = bytesRead
-// 		file.index = 0
-// 	}
-//
-// 	var nextChar = file.buffer[file.index]
-// 	if peekOrConsumeChar == consumeChar {
-// 		file.index++
-// 	}
-// 	return nextChar
-// }

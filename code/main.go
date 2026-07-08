@@ -19,6 +19,7 @@ func main() {
 			case sax.EventTypeOpeningTag: println("start tag: ", string(event.Tag));
 			case sax.EventTypeClosingTag: println("closing tag: ", string(event.Tag));
 			case sax.EventTypeAttribute: println("Attribute, key: ", string(event.Attribute.Key), " value: ", string(event.Attribute.Value));
+			case sax.EventTypeTextNode: println("Text node: ", string(event.Text));
 			case sax.EventTypeUnknown: println("Uknown Event");
 		}
 	})
