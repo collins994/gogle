@@ -1,3 +1,5 @@
+/*
+*/
 package sax
 
 import (
@@ -117,12 +119,9 @@ stateOpeningTag:
 			if nextbyte == '-' && nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter) == '-' {
 				goto stateComment
 			}
-			fs.index--; // put back the first '-' we read
+			putBackLastBytes(&fs, 2);// put back the last two bytes
 		}
 		// consider <div>, <div class="">
-		/*
-			TODO(collins994): read the bytes up to the first whitespace (marking the end of "div", and a possible begining of attributes) or >(marking the end of the entire tag),
-		*/
 		event.Tag = event.Tag[:0]
 		for { // read "div"
 			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
@@ -338,4 +337,8 @@ readFile:
 		fs.index++
 	}
 	return nextbyte
+}
+
+func putBackLastBytes(fs *fileStruct, count int) {
+	fs.index -= count;
 }
