@@ -1,3 +1,5 @@
+/*
+*/
 package sax
 
 import (
@@ -16,14 +18,13 @@ import (
 type EventType int
 
 const (
-	EventTypeTextNode                EventType = iota // "my", "name", "is", "collins" - an eventTextNode is triggered for each word that is not in an end tag or a start tag
-	EventTypeStartDocument                            // triggered right before the < symbol of <html> is read
-	EventTypeEndDocument                              // triggered right after the > symbol of </html> is read
-	EventTypeOpeningTag                               // triggered right after the h in <html> is read (and other tags too)
-	EventTypeClosingTag                               // triggered right after the / in </html> is read (and other tags too)
-	EventTypeAttribute                                // triggered right after the h in <a href="example.com"> is read
-	EventTypeDocumentTypeDeclaration                  // triggered at !DOCTYPE
-	EventTypeUnknown                                  // used to signal that an event.type is not set
+	EventTypeTextNode      EventType = iota // "my", "name", "is", "collins" - an eventTextNode is triggered for each word that is not in an end tag or a start tag
+	EventTypeStartDocument                  // triggered right before the < symbol of <html> is read
+	EventTypeEndDocument                    // triggered right after the > symbol of </html> is read
+	EventTypeOpeningTag                     // triggered right after the h in <html> is read (and other tags too)
+	EventTypeClosingTag                     // triggered right after the / in </html> is read (and other tags too)
+	EventTypeAttribute                      // triggered right after the h in <a href="example.com"> is read
+	EventTypeUnknown                        // used to signal that an event.type is not set
 )
 
 type Event struct {
@@ -39,10 +40,9 @@ type Event struct {
 
 type fileStruct struct {
 	file         *os.File
+	index        int
 	buffer       []byte
-	bufferLength uint
-	index        uint
-	line         uint
+	bufferLength int
 }
 
 var (
@@ -105,14 +105,6 @@ stateStart:
 		}
 	}
 
-stateDocumentTypeDeclaration:
-	{
-		// consider <!DOCTYPE html     >
-		// discard DOCTYPE
-		for {
-		}
-	}
-
 stateOpeningTag:
 	{
 		nextByte(&fs, skipWhiteSpace, consumeFirstCharacter)
@@ -123,16 +115,13 @@ stateOpeningTag:
 		}
 		if nextbyte == '!' { // we may be going for a comment, check for sequence !--
 			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
-			var nextbyte = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+			var nextbyte = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) 
 			if nextbyte == '-' && nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter) == '-' {
 				goto stateComment
 			}
-			fs.index-- // put back the first '-' we read
+			putBackLastBytes(&fs, 2);// put back the last two bytes
 		}
 		// consider <div>, <div class="">
-		/*
-			TODO(collins994): read the bytes up to the first whitespace (marking the end of "div", and a possible begining of attributes) or >(marking the end of the entire tag),
-		*/
 		event.Tag = event.Tag[:0]
 		for { // read "div"
 			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
@@ -181,15 +170,12 @@ stateComment:
 		for {
 			nextbyte = nextByte(&fs, skipWhiteSpace, consumeFirstCharacter)
 			// nested if, to check a sequence --> (end of comment)
-			if nextbyte == 0 {
-				goto stateStart
-			}
 			if nextbyte == '-' {
 				nextbyte = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
 				if nextbyte == '-' {
 					nextbyte = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
 					if nextbyte == '>' { // we've reached the end of the comment
-						println("comments")
+						println("comments");
 						goto stateStart
 					}
 				}
@@ -221,7 +207,7 @@ stateAttribute:
 				goto stateAttributeValue
 			}
 			if nextbyte == '>' { // eg <a blackButton>
-				// an attribute with no value; eg <a blackButton>
+				// an attribute with no value; eg <a blackButton> 
 				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter
 				event.Type = EventTypeAttribute
 				event.Attribute.HasValue = false
@@ -292,11 +278,8 @@ stateCharacters:
 		var nextbyte byte
 		for {
 			nextbyte = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-			if nextbyte == 0 {
-				goto stateStart
-			}
 			if nextbyte == '<' { // end of the characters
-				if len(event.Text) > 0 {
+				if len(event.Text) > 0{
 					event.Type = EventTypeTextNode
 					callbackFunction(&event, nil)
 					event.Type = EventTypeUnknown
@@ -330,7 +313,7 @@ readFile:
 		if err != nil {
 			return 0
 		}
-		fs.bufferLength = uint(bytesRead)
+		fs.bufferLength = bytesRead
 		fs.index = 0
 	}
 
@@ -342,9 +325,6 @@ readFile:
 			}
 			temporaryByte = fs.buffer[fs.index]
 			if temporaryByte == ' ' || temporaryByte == '\n' || temporaryByte == '\t' || temporaryByte == '\r' {
-				if temporaryByte == '\n' {
-					fs.line++
-				}
 				fs.index++
 			} else {
 				break
@@ -352,15 +332,13 @@ readFile:
 		}
 	}
 
-	if fs.index >= fs.bufferLength {
-		goto readFile
-	}
 	var nextbyte = fs.buffer[fs.index]
-	if nextbyte == '\n' {
-		fs.line++
-	}
 	if consumeFirstCharacter {
 		fs.index++
 	}
 	return nextbyte
+}
+
+func putBackLastBytes(fs *fileStruct, count int) {
+	fs.index -= count;
 }
