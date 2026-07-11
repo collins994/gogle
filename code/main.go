@@ -1,64 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"github.com/collins994/gogle/code/sax"
-	"log"
+	"os"
 )
 
 func main() {
-	// var filename = "build/sample.html";
-	var filename = "sample.html";
-	sax.ParseHTMLFile(filename, func(event *sax.Event, err error){
-		if err != nil {
-			log.Fatalf("%v", err);
-		}
+	file, _ := os.Open("sample.html");
+	defer file.Close()
+	var event = sax.ParserEvent{ }
+	event.Type = sax.ParserEventTypeUnknown;
+	event.EventBuffer = make([]byte, 1024);
 
-		switch(event.Type) {
-			case sax.EventTypeStartDocument: println("start parsing", filename);
-			case sax.EventTypeEndDocument: println("finish parsing", filename);
-			case sax.EventTypeOpeningTag: println("start tag: ", string(event.Tag));
-			case sax.EventTypeClosingTag: println("closing tag: ", string(event.Tag));
-			case sax.EventTypeAttribute: println("Attribute, key: ", string(event.Attribute.Key), " value: ", string(event.Attribute.Value));
-			case sax.EventTypeTextNode: println("Text node: ", string(event.Text));
-			case sax.EventTypeUnknown: println("Uknown Event");
-		}
-	})
+	var Next = sax.ParseHTMLFile(file, true, "sample.html");
+	Next(&event);
+	if event.EventError != nil {
+		fmt.Printf("EventError: %s", event.EventError);
+		return 
+	}
+	print(string(event.EventBuffer));
 }
-
-// func main() {
-// 	var b bytes.Buffer;
-// }
-// 
-// func main2() {
-// 	var filename = "sample.html";
-// 
-// 	sax.ParseFileHTML(filename,func(parserEvent *sax.Event, parserError error){
-// 		if parserError != nil {
-// 			if errors.Is(parserError, sax.ErrorUnexpectedEndOfFile){
-// 				fmt.Printf("[ERROR]: %v\n", parserError);
-// 			}
-// 		}
-// 		switch(parserEvent.Type)
-// 		{
-// 			case sax.EventStartDocument: { 
-// 				fmt.Printf("parsing\t%v\n", filename);
-// 			} 
-// 
-// 			case sax.EventEndDocument: { 
-// 				fmt.Printf("finish parsing\t%v\n", filename);
-// 			} 
-// 
-// 			case sax.EventStartTag: { 
-// 				fmt.Printf("start tag:\t%s\n", parserEvent.Characters.String());
-// 			} 
-// 
-// 			case sax.EventEndTag: { 
-// 				fmt.Printf("end tag:\t%s\n", parserEvent.Characters.String());
-// 			} 
-// 
-// 			case sax.EventCharacters: { 
-// 				fmt.Printf("Characters:\t%s\n", parserEvent.Characters.String());
-// 			}
-// 		}
-// 	})
-// }

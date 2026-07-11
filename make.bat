@@ -14,7 +14,7 @@ if "%1" == "build" (
 
 if "%1" == "run" (
 	pushd build
-	gogle.exe
+		gogle.exe
 	popd
 	exit /b
 )
