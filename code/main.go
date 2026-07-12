@@ -20,4 +20,18 @@ func main() {
 		return 
 	}
 	print(string(event.EventBuffer));
+
+	Next(&event);
+	if event.EventError != nil {
+		fmt.Printf("EventError: %s", event.EventError);
+		return 
+	}
+	print(string(event.EventBuffer));
+
+	Next(&event);
+	if event.EventError != nil {
+		fmt.Printf("EventError: %s", event.EventError);
+		return 
+	}
+	print(string(event.EventBuffer));
 }
