@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/collins994/gogle/code/sax"
+	"github.com/collins994/gogle/code/parser"
 	"os"
 )
 
@@ -14,24 +14,17 @@ func main() {
 	event.EventBuffer = make([]byte, 1024);
 
 	var Next = sax.ParseHTMLFile(file, true, "sample.html");
-	Next(&event);
-	if event.EventError != nil {
-		fmt.Printf("EventError: %s", event.EventError);
-		return 
+	var n = 4;
+	for {
+		if n == 0 {
+			break;
+		}
+		n--;
+		Next(&event);
+		if event.EventError != nil {
+			fmt.Printf("EventError: %s", event.EventError);
+			return 
+		}
+		println(event.Type, string(event.EventBuffer));
 	}
-	print(string(event.EventBuffer));
-
-	Next(&event);
-	if event.EventError != nil {
-		fmt.Printf("EventError: %s", event.EventError);
-		return 
-	}
-	print(string(event.EventBuffer));
-
-	Next(&event);
-	if event.EventError != nil {
-		fmt.Printf("EventError: %s", event.EventError);
-		return 
-	}
-	print(string(event.EventBuffer));
 }
