@@ -20,15 +20,14 @@ type ParserEventType int
 	</html>
 */
 const (
-	ParserEventTypeTextNode            ParserEventType = iota // "my", "name", "is", "collins" - an eventTextNode is triggered for each word that is not in an end tag or a start tag
-	ParserEventTypeEndDocument                                // triggered right after the > symbol of </html> is read
-	ParserEventTypeOpeningTag                                 // triggered right after the h in <html> is read (and other tags too)
-	ParserEventTypeClosingTag                                 // triggered right after the / in </html> is read (and other tags too)
-	ParserEventTypeAttributeKey                               // triggered right after the h in <a href="example.com"> is read
-	ParserEventTypeAttributeValue                             // triggered right after the = in <a href="example.com"> is read
-	ParserEventTypeDocumentDeclaration                        //
-	ParserEventTypeComment
-	ParserEventTypeUnknown // used to signal that an event.type is not set
+	ParserEventTypeTextNode       ParserEventType = iota // "my", "name", "is", "collins" - an eventTextNode is triggered for each word that is not in an end tag or a start tag
+	ParserEventTypeEndDocument                           // triggered right after the > symbol of </html> is read
+	ParserEventTypeOpeningTag                            // triggered right after the h in <html> is read (and other tags too)
+	ParserEventTypeClosingTag                            // triggered right after the / in </html> is read (and other tags too)
+	ParserEventTypeAttributeKey                          // triggered right after the h in <a href="example.com"> is read
+	ParserEventTypeAttributeValue                        // triggered right after the = in <a href="example.com"> is read
+	ParserEventTypeComment                               //
+	ParserEventTypeUnknown                               // used to signal that an event.type is not set
 )
 
 var (
@@ -48,12 +47,12 @@ type parserState byte
 
 const (
 	parserStateOpeningTag parserState = iota
-	parserStateOpeningTagEnd
 	parserStateUnknown
 	parserStateAttributeKey
+	parserStateAttributeValue
 )
 
-func ParseHTMLFile(file *os.File, strict bool, filename string) func(*ParserEvent) {
+func ParseHTMLFile(file *os.File, filename string) func(*ParserEvent) {
 	var nextbyte byte
 	var numberOfSpacesSkipped int
 	var fs = fileStruct{
@@ -62,7 +61,7 @@ func ParseHTMLFile(file *os.File, strict bool, filename string) func(*ParserEven
 		buffer:       make([]byte, 1024),
 		bufferLength: 0,
 	}
-	var nextExpectedState parserState;
+	var currentState parserState = parserStateUnknown;
 
 	return func(event *ParserEvent) {
 		event.EventBuffer = event.EventBuffer[:0]
@@ -73,148 +72,105 @@ func ParseHTMLFile(file *os.File, strict bool, filename string) func(*ParserEven
 			event.Type = ParserEventTypeEndDocument
 			return
 		}
-		if nextbyte == '<' {
+		/**/
+		if currentState == parserStateOpeningTag {
+			goto attributeKey;
+		}
+
+		if currentState == parserStateAttributeKey {
+			if nextbyte == '=' {
+				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				goto attributeValue;
+			}
+			goto attributeKey;
+		}
+
+		if currentState == parserStateAttributeValue {
+			goto attributeKey;
+		}
+
+		/* tag */
+		if nextbyte == '<'{
 			nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
 			nextbyte, numberOfSpacesSkipped = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+			if numberOfSpacesSkipped > 0 {
+				event.EventError = EventErrorInvalidWhiteSpace
+				return
+			}
 
 			// the second byte after < has to be a letter,  /,  !
-			switch nextbyte {
-			case '!':
-				{
-					nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter (!)
-					// after ! we expect a letter (for a document declaration), or - (for a comment);
-					nextbyte, _ := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
-					if strict && numberOfSpacesSkipped > 0 {
-						event.EventError = EventErrorInvalidWhiteSpace
-						return
-					}
-					switch nextbyte {
-					case '-':
-						{
-							nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter (-)
-							if !strict {
-								goto comment
-							}
-							// after the first -, we should get a second - (preferably no spaces)
-							nextbyte, numberOfSpacesSkipped := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
-							if numberOfSpacesSkipped > 0 {
-								event.EventError = EventErrorInvalidWhiteSpace
-								return
-							}
-							if nextbyte != '-' {
-								event.EventError = EventErrorInvalidTag
-								return
-							}
-							nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter (-)
-							goto comment
-						}
-					default:
-						{
-							if !(unicode.IsLetter(rune(nextbyte))) {
-								event.EventError = EventErrorInvalidTag
-								return
-							} else {
-								goto documentDeclaration
+			// discard comments and document declaration
+			if nextbyte == '!' {
+				event.Type = ParserEventTypeComment
+				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				secondbyte, _ := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+				for {
+					nextbyte, _ = nextByte(&fs, skipWhiteSpace, consumeFirstCharacter)
+					if nextbyte == '-' {
+						nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+						if nextbyte == '-' {
+							nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+							if nextbyte == '>' {
+								break
 							}
 						}
 					}
-				}
-			case '/':
-				{
-					goto closingTag
-				}
-			default:
-				{
-					if !(unicode.IsLetter(rune(nextbyte))) {
-						event.EventError = EventErrorInvalidTag
-						return
+					if nextbyte == '>' && secondbyte != '-' {
+						break
 					}
-					goto openingTag
-				}
-			}
-		} else {
-			switch(nextExpectedState) {
-				case parserStateAttributeKey: goto attributeKey;
-				default: goto textNode;
-			}
-		}
-
-	documentDeclaration:
-		{
-			event.Type = ParserEventTypeDocumentDeclaration
-			event.EventError = nil
-			// discard upto to the closing >
-			for {
-				nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the byte
-				if strict {
 					if nextbyte == 0 {
 						event.EventError = EventErrorInvalidEndOfFile
-						return
-					}
-					if nextbyte == '\n' {
-						event.EventError = EventErrorInvalidNewLine
-						return
+						break
 					}
 				}
-				if nextbyte == '>' || nextbyte == '\n' || nextbyte == 0 {
-					return
-				}
+				return
 			}
-			return
-		}
 
-	comment:
-		{
-			event.Type = ParserEventTypeComment
-			// discard upto the closing sequence -->
-			for {
-				nextbyte, _ = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
-				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the byte
-				if nextbyte == 0 {
-					if strict {
-						event.EventError = EventErrorInvalidEndOfFile
-						return
-					}
-					return
-				}
-				if nextbyte == '-' {
-					nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-					if nextbyte == '-' {
-						nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter (second -)
-						nextbyte, _ = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
-						if nextbyte == '>' {
-							nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard the delimiter (>)
-							return
-						}
-					}
-				}
+			if nextbyte == '/' { // a closing tag
+				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				goto closingTag;
 			}
+
+			if unicode.IsLetter(rune(nextbyte)) { // an openingTag
+				goto openingTag
+			}
+
+			event.EventError = EventErrorInvalidTag
 			return
-		}
+		} 
+		/* tag */
+		goto textNode;
+
+
+
+
+
 
 	openingTag:
 		{
+			currentState = parserStateOpeningTag;
 			event.Type = ParserEventTypeOpeningTag
-			// read upto the first space, or >
-			event.Type = ParserEventTypeOpeningTag
+			// read upto the first space, or > 
 			for {
 				nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-				if strict {
-					if nextbyte == 0 {
-						event.EventError = EventErrorInvalidEndOfFile
-						return
-					}
+				if nextbyte == 0 {
+					event.EventError = EventErrorInvalidEndOfFile
+					break
 				}
-
-				if nextbyte == '>' || unicode.IsSpace(rune(nextbyte)) || nextbyte == 0{
-					nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					if unicode.IsSpace(rune(nextbyte)) {
-						nextExpectedState = parserStateAttributeKey;
-					} else {
-						nextExpectedState = parserStateUnknown;
+				if nextbyte == '>' {
+	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					currentState = parserStateUnknown;
+					break;
+				}
+				if unicode.IsSpace(rune(nextbyte)) {
+	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+					if nextbyte == '>' {
+	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						currentState = parserStateUnknown;
+						break;
 					}
-					return
+					break
 				}
 
 				b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
@@ -223,39 +179,117 @@ func ParseHTMLFile(file *os.File, strict bool, filename string) func(*ParserEven
 			return
 		}
 
-	attributeKey:
-		{
-			// println("attributeKey");
-			event.Type = ParserEventTypeAttributeKey;
-			// read up until a space or '=' or >
-			for {
-				nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter);
-				if nextbyte == '=' || unicode.IsSpace(rune(nextbyte)) || nextbyte == '>' || nextbyte == 0{
-					nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					if nextbyte ==  '>' || nextbyte == 0{
-						nextExpectedState = parserStateUnknown;
-					} else {
-						nextExpectedState = parserStateAttributeKey;
-					}
+
+	 attributeKey:
+	  {
+	  	currentState = parserStateAttributeKey;
+	  	event.Type = ParserEventTypeAttributeKey
+	  	// read up until a space or '=' or >
+	  	for {
+	  		nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == 0  {
+					event.EventError = EventErrorInvalidEndOfFile;
 					return;
 				}
-				b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
-				event.EventBuffer = append(event.EventBuffer, b)
+	  		if nextbyte == '=' || unicode.IsSpace(rune(nextbyte)) {
+	  			currentState = parserStateAttributeKey;
+	  			// nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+	  			nextbyte, _ := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+					if nextbyte == '>' {
+	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						currentState = parserStateUnknown;
+					}
+	  			return
+	  		}
+				if nextbyte == '>' {
+	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					currentState = parserStateUnknown; // end of the openingTag 
+					return;
+				}
+	  		b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+	  		event.EventBuffer = append(event.EventBuffer, b)
+	  	}
+	  	return
+	  }
+
+	attributeValue: 
+		{
+			currentState = parserStateAttributeValue;
+			event.Type = ParserEventTypeAttributeValue;
+			// read up until '>' || space (outside quotes)
+			// discard quotes if any
+	  	firstbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+			if firstbyte == '\'' || firstbyte == '"' {
+				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
 			}
-			return
+			for {
+	  		nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == 0 || nextbyte == '>'{
+					currentState = parserStateUnknown;
+					break
+				}
+				if unicode.IsSpace(rune(nextbyte)) && (firstbyte != '"' && firstbyte != '\''){
+					currentState = parserStateAttributeValue;
+					break
+				}
+				if (nextbyte == '\'' && firstbyte == '\'') || (nextbyte == '"' && firstbyte == '"'){
+	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+	  			nextbyte, _ := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+					if nextbyte == '>' {
+	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						currentState = parserStateUnknown;
+					}else{
+						currentState = parserStateAttributeValue;
+					}
+					break
+				}
+	  		b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+	  		event.EventBuffer = append(event.EventBuffer, b)
+			}
+			return;
 		}
 
-	closingTag:
-		{
-			println("closing tag")
-			return
-		}
+		closingTag:
+			{
+				event.Type = ParserEventTypeClosingTag;
+				// read up to >
+				for {
+					nextbyte, numberOfSpacesSkipped = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+					if numberOfSpacesSkipped > 0 {
+						event.EventError = EventErrorInvalidWhiteSpace;
+					}
+					if nextbyte == '>'{
+	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						break;
+					}
+					if nextbyte == 0 {
+						event.EventError = EventErrorInvalidEndOfFile
+						break;
+					}
+					b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+					event.EventBuffer = append(event.EventBuffer, b)
+				}
+				return
+			}
 
-	textNode:
-		{
-			println("text node")
-			return
-		}
+		textNode:
+			{
+				event.Type = ParserEventTypeTextNode;
+				// read up to space || <
+				for {
+	  			nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+					if nextbyte == 0 {
+						event.EventError = EventErrorInvalidEndOfFile;
+						break;
+					}
+					if unicode.IsSpace(rune(nextbyte)) || nextbyte == '<'{
+						break;
+					}
+					b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+					event.EventBuffer = append(event.EventBuffer, b)
+				}
+				return
+			}
 
 		return
 	}
@@ -317,122 +351,3 @@ readFile:
 	}
 	return nextbyte, numberOfSpacesSkipped
 }
-
-// type parser struct{
-// 	Mode ParserMode
-// 	File *os.File
-//
-// 	buffer       []byte
-// 	index        uint
-// 	bufferLength uint
-//
-// 	previousState parserState
-// }
-
-// type ParserMode int8
-//
-// const (
-// 	ParserModeStrict    ParserMode = 0
-// 	ParserModeNotStrict ParserMode = 1
-// )
-//
-// type parserState int
-//
-// const (
-// 	parserStateStart parserState = iota
-// )
-//
-// type HTMLParser struct {
-// 	Mode ParserMode
-// 	File *os.File
-//
-// 	buffer       []byte
-// 	index        uint
-// 	bufferLength uint
-//
-// 	previousState parserState
-// }
-//
-// func NewHTMLParser(filename string, Mode ParserMode) (*HTMLParser, error) {
-// 	var parser = &HTMLParser{}
-//
-// 	file, err := os.Open(filename)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	parser.File = file
-// 	parser.Mode = Mode
-// 	parser.EventBuffer = make([]byte, 1024)
-// 	return parser
-// }
-//
-// func (parser *HTMLParser) Next(event *ParserEvent) error {
-// 	event.Type = ParserEventTypeUnknown
-// 	event.EventBuffer = event.EventBuffer[:0]
-// 	var nextbyte byte
-// 	for {
-// 		nextbyte = parser.nextByte(dontSkipWhiteSpace, consumeFirstCharacter)
-// 		println(string(nextbyte))
-// 		if nextbyte == 0 {
-// 			break
-// 		}
-// 	}
-// 	// determine the current state
-// 	return nil
-// }
-//
-// /*
-// if skipWhiteSpace is true,  nextByte will skip any tabs, spaces, newlines, carriage returns to get to the firs non whitespace character
-// if skipWhiteSpace is false, nextByte will return the first byte it encounters, whether a whitespace character or not
-// if consumeFirstCharacter is true, nextByte will consume the first character it encounters before returning it, meaning subsequent calls to nextByte will return the bytes after the consumed one
-// if consumeFirstCharacter is false, nextByte will peek and return the byte, meaning a subsequent call will return the same byte as the one before
-// at end of file, nextByte will return 0
-// */
-// const (
-// 	skipWhiteSpace            = true
-// 	dontSkipWhiteSpace        = false
-// 	consumeFirstCharacter     = true
-// 	dontConsumeFirstCharacter = false
-// )
-//
-// func (parser *HTMLParser) nextByte(skipWhiteSpace bool, consumeFirstCharacter bool) byte {
-// 	goto readFile
-// readFile:
-// 	println("parser.index: ", parser.index)
-// 	if parser.index >= parser.bufferLength {
-// 		bytesRead, err := parser.File.Read(parser.buffer)
-// 		println("parser.File: ", parser.File)
-// 		println("bytesRead: ", bytesRead)
-// 		if err != nil {
-// 			return 0
-// 		}
-// 		parser.bufferLength = uint(bytesRead)
-// 		parser.index = 0
-// 	}
-//
-// 	if skipWhiteSpace {
-// 		var temporaryByte byte
-// 		for {
-// 			if parser.index >= parser.bufferLength {
-// 				goto readFile
-// 			}
-// 			temporaryByte = parser.buffer[parser.index]
-// 			if !(temporaryByte == ' ' || temporaryByte == '\n' || temporaryByte == '\t' || temporaryByte == '\r') {
-// 				break
-// 			}
-// 			parser.index++
-// 		}
-// 	}
-//
-// 	println("parser.bufferLength: ", parser.bufferLength)
-// 	var nextbyte = parser.buffer[parser.index]
-// 	if consumeFirstCharacter {
-// 		parser.index++
-// 	}
-// 	return nextbyte
-// }
-//
-// func (parser *HTMLParser) reportError(err string) {
-// }
-//

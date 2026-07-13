@@ -13,17 +13,15 @@ func main() {
 	event.Type = sax.ParserEventTypeUnknown;
 	event.EventBuffer = make([]byte, 1024);
 
-	var Next = sax.ParseHTMLFile(file, true, "sample.html");
-	var n = 4;
+	var Next = sax.ParseHTMLFile(file, "sample.html");
 	for {
-		if n == 0 {
+		Next(&event);
+		if event.Type == sax.ParserEventTypeEndDocument {
+			println("done parsing");
 			break;
 		}
-		n--;
-		Next(&event);
 		if event.EventError != nil {
-			fmt.Printf("EventError: %s", event.EventError);
-			return 
+			fmt.Printf("EventError: %s, ", event.EventError);
 		}
 		println(event.Type, string(event.EventBuffer));
 	}
