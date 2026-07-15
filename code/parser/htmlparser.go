@@ -2,7 +2,7 @@
 	errors I'm worried About:
 		a < in a character string
 */
-package sax
+package parser
 
 import (
 	"errors"
@@ -52,47 +52,42 @@ const (
 	parserStateAttributeValue
 )
 
-func ParseHTMLFile(file *os.File, filename string) func(*ParserEvent) {
+func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 	var nextbyte byte
 	var numberOfSpacesSkipped int
-	var fs = fileStruct{
-		file:         file,
-		index:        0,
-		buffer:       make([]byte, 1024),
-		bufferLength: 0,
-	}
-	var currentState parserState = parserStateUnknown;
+	var reader = newFileReader(file)
+	var currentState parserState = parserStateUnknown
 
 	return func(event *ParserEvent) {
 		event.EventBuffer = event.EventBuffer[:0]
 		event.EventError = nil
 
-		nextbyte, _ = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter) // skip whitespace between tokens
+		nextbyte, _ = reader.read(skipWhiteSpace, dontConsumeFirstCharacter) // skip whitespace between tokens
 		if nextbyte == 0 {
 			event.Type = ParserEventTypeEndDocument
 			return
 		}
 		/**/
 		if currentState == parserStateOpeningTag {
-			goto attributeKey;
+			goto attributeKey
 		}
 
 		if currentState == parserStateAttributeKey {
 			if nextbyte == '=' {
-				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
-				goto attributeValue;
+				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				goto attributeValue
 			}
-			goto attributeKey;
+			goto attributeKey
 		}
 
 		if currentState == parserStateAttributeValue {
-			goto attributeKey;
+			goto attributeKey
 		}
 
 		/* tag */
-		if nextbyte == '<'{
-			nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
-			nextbyte, numberOfSpacesSkipped = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+		if nextbyte == '<' {
+			reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+			nextbyte, numberOfSpacesSkipped = reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
 			if numberOfSpacesSkipped > 0 {
 				event.EventError = EventErrorInvalidWhiteSpace
 				return
@@ -102,14 +97,14 @@ func ParseHTMLFile(file *os.File, filename string) func(*ParserEvent) {
 			// discard comments and document declaration
 			if nextbyte == '!' {
 				event.Type = ParserEventTypeComment
-				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
-				secondbyte, _ := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				secondbyte, _ := reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
 				for {
-					nextbyte, _ = nextByte(&fs, skipWhiteSpace, consumeFirstCharacter)
+					nextbyte, _ = reader.read(skipWhiteSpace, consumeFirstCharacter)
 					if nextbyte == '-' {
-						nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+						nextbyte, _ = reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
 						if nextbyte == '-' {
-							nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+							nextbyte, _ = reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
 							if nextbyte == '>' {
 								break
 							}
@@ -127,8 +122,8 @@ func ParseHTMLFile(file *os.File, filename string) func(*ParserEvent) {
 			}
 
 			if nextbyte == '/' { // a closing tag
-				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
-				goto closingTag;
+				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				goto closingTag
 			}
 
 			if unicode.IsLetter(rune(nextbyte)) { // an openingTag
@@ -137,169 +132,155 @@ func ParseHTMLFile(file *os.File, filename string) func(*ParserEvent) {
 
 			event.EventError = EventErrorInvalidTag
 			return
-		} 
+		}
 		/* tag */
-		goto textNode;
-
-
-
-
-
+		goto textNode
 
 	openingTag:
 		{
-			currentState = parserStateOpeningTag;
+			currentState = parserStateOpeningTag
 			event.Type = ParserEventTypeOpeningTag
-			// read upto the first space, or > 
+			// read upto the first space, or >
 			for {
-				nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				nextbyte, _ = reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 				if nextbyte == 0 {
 					event.EventError = EventErrorInvalidEndOfFile
 					break
 				}
 				if nextbyte == '>' {
-	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					currentState = parserStateUnknown;
-					break;
+					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					currentState = parserStateUnknown
+					break
 				}
 				if unicode.IsSpace(rune(nextbyte)) {
-	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					nextbyte, _ = nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
+					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					nextbyte, _ = reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 					if nextbyte == '>' {
-	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-						currentState = parserStateUnknown;
-						break;
+						reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						currentState = parserStateUnknown
+						break
 					}
 					break
 				}
 
-				b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
+				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
 				event.EventBuffer = append(event.EventBuffer, b)
 			}
 			return
 		}
 
-
-	 attributeKey:
-	  {
-	  	currentState = parserStateAttributeKey;
-	  	event.Type = ParserEventTypeAttributeKey
-	  	// read up until a space or '=' or >
-	  	for {
-	  		nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-				if nextbyte == 0  {
-					event.EventError = EventErrorInvalidEndOfFile;
-					return;
-				}
-	  		if nextbyte == '=' || unicode.IsSpace(rune(nextbyte)) {
-	  			currentState = parserStateAttributeKey;
-	  			// nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-	  			nextbyte, _ := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
-					if nextbyte == '>' {
-	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-						currentState = parserStateUnknown;
-					}
-	  			return
-	  		}
-				if nextbyte == '>' {
-	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					currentState = parserStateUnknown; // end of the openingTag 
-					return;
-				}
-	  		b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
-	  		event.EventBuffer = append(event.EventBuffer, b)
-	  	}
-	  	return
-	  }
-
-	attributeValue: 
+	attributeKey:
 		{
-			currentState = parserStateAttributeValue;
-			event.Type = ParserEventTypeAttributeValue;
-			// read up until '>' || space (outside quotes)
-			// discard quotes if any
-	  	firstbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-			if firstbyte == '\'' || firstbyte == '"' {
-				nextByte(&fs, skipWhiteSpace, consumeFirstCharacter) // discard delimiter
-			}
+			currentState = parserStateAttributeKey
+			event.Type = ParserEventTypeAttributeKey
+			// read up until a space or '=' or >
 			for {
-	  		nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-				if nextbyte == 0 || nextbyte == '>'{
-					currentState = parserStateUnknown;
-					break
+				nextbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == 0 {
+					event.EventError = EventErrorInvalidEndOfFile
+					return
 				}
-				if unicode.IsSpace(rune(nextbyte)) && (firstbyte != '"' && firstbyte != '\''){
-					currentState = parserStateAttributeValue;
-					break
-				}
-				if (nextbyte == '\'' && firstbyte == '\'') || (nextbyte == '"' && firstbyte == '"'){
-	  			nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-	  			nextbyte, _ := nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == '=' || unicode.IsSpace(rune(nextbyte)) {
+					currentState = parserStateAttributeKey
+					nextbyte, _ := reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
 					if nextbyte == '>' {
-	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-						currentState = parserStateUnknown;
-					}else{
-						currentState = parserStateAttributeValue;
+						reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						currentState = parserStateUnknown
 					}
-					break
+					return
 				}
-	  		b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
-	  		event.EventBuffer = append(event.EventBuffer, b)
+				if nextbyte == '>' {
+					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					currentState = parserStateUnknown                      // end of the openingTag
+					return
+				}
+				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				event.EventBuffer = append(event.EventBuffer, b)
 			}
-			return;
+			return
 		}
 
-		closingTag:
-			{
-				event.Type = ParserEventTypeClosingTag;
-				// read up to >
-				for {
-					nextbyte, numberOfSpacesSkipped = nextByte(&fs, skipWhiteSpace, dontConsumeFirstCharacter)
-					if numberOfSpacesSkipped > 0 {
-						event.EventError = EventErrorInvalidWhiteSpace;
-					}
-					if nextbyte == '>'{
-	  				nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-						break;
-					}
-					if nextbyte == 0 {
-						event.EventError = EventErrorInvalidEndOfFile
-						break;
-					}
-					b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
-					event.EventBuffer = append(event.EventBuffer, b)
-				}
-				return
+	attributeValue:
+		{
+			currentState = parserStateAttributeValue
+			event.Type = ParserEventTypeAttributeValue
+			// read up until '>' || space (outside quotes)
+			// discard quotes if any
+			firstbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+			if firstbyte == '\'' || firstbyte == '"' {
+				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
 			}
+			for {
+				nextbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == 0 || nextbyte == '>' {
+					currentState = parserStateUnknown
+					break
+				}
+				if unicode.IsSpace(rune(nextbyte)) && (firstbyte != '"' && firstbyte != '\'') {
+					currentState = parserStateAttributeValue
+					break
+				}
+				if (nextbyte == '\'' && firstbyte == '\'') || (nextbyte == '"' && firstbyte == '"') {
+					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					nextbyte, _ := reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
+					if nextbyte == '>' {
+						reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						currentState = parserStateUnknown
+					} else {
+						currentState = parserStateAttributeValue
+					}
+					break
+				}
+				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				event.EventBuffer = append(event.EventBuffer, b)
+			}
+			return
+		}
 
-		textNode:
-			{
-				event.Type = ParserEventTypeTextNode;
-				// read up to space || <
-				for {
-	  			nextbyte, _ := nextByte(&fs, dontSkipWhiteSpace, dontConsumeFirstCharacter)
-					if nextbyte == 0 {
-						event.EventError = EventErrorInvalidEndOfFile;
-						break;
-					}
-					if unicode.IsSpace(rune(nextbyte)) || nextbyte == '<'{
-						break;
-					}
-					b, _ := nextByte(&fs, dontSkipWhiteSpace, consumeFirstCharacter)
-					event.EventBuffer = append(event.EventBuffer, b)
+	closingTag:
+		{
+			event.Type = ParserEventTypeClosingTag
+			// read up to >
+			for {
+				nextbyte, numberOfSpacesSkipped = reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
+				if numberOfSpacesSkipped > 0 {
+					event.EventError = EventErrorInvalidWhiteSpace
 				}
-				return
+				if nextbyte == '>' {
+					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					break
+				}
+				if nextbyte == 0 {
+					event.EventError = EventErrorInvalidEndOfFile
+					break
+				}
+				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				event.EventBuffer = append(event.EventBuffer, b)
 			}
+			return
+		}
+
+	textNode:
+		{
+			event.Type = ParserEventTypeTextNode
+			// read up to space || <
+			for {
+				nextbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				if nextbyte == 0 {
+					event.EventError = EventErrorInvalidEndOfFile
+					break
+				}
+				if unicode.IsSpace(rune(nextbyte)) || nextbyte == '<' {
+					break
+				}
+				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				event.EventBuffer = append(event.EventBuffer, b)
+			}
+			return
+		}
 
 		return
 	}
-}
-
-type fileStruct struct {
-	file         *os.File
-	index        int
-	buffer       []byte
-	bufferLength int
 }
 
 /*
@@ -315,39 +296,3 @@ const (
 	consumeFirstCharacter     = true
 	dontConsumeFirstCharacter = false
 )
-
-func nextByte(fs *fileStruct, skipWhiteSpace bool, consumeFirstCharacter bool) (byte, int) {
-	goto readFile
-readFile:
-	if fs.index >= fs.bufferLength {
-		bytesRead, err := fs.file.Read(fs.buffer)
-		if err != nil {
-			return 0, 0
-		}
-		fs.bufferLength = bytesRead
-		fs.index = 0
-	}
-
-	var numberOfSpacesSkipped = 0
-	if skipWhiteSpace {
-		var temporaryByte byte
-		for {
-			if fs.index >= fs.bufferLength {
-				goto readFile
-			}
-			temporaryByte = fs.buffer[fs.index]
-			if temporaryByte == ' ' || temporaryByte == '\n' || temporaryByte == '\t' || temporaryByte == '\r' {
-				fs.index++
-				numberOfSpacesSkipped++
-			} else {
-				break
-			}
-		}
-	}
-
-	var nextbyte = fs.buffer[fs.index]
-	if consumeFirstCharacter {
-		fs.index++
-	}
-	return nextbyte, numberOfSpacesSkipped
-}
