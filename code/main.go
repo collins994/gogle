@@ -27,15 +27,15 @@ func indexFolder(root string) {
 		}
 
 		println("[INDEXING]: ", "gl2/"+filepath.Base(path))
-		indexFile("gl2/"+filepath.Base(path));
+		indexFile("gl2/" + filepath.Base(path))
 		return nil
 	})
 }
 
-func indexFile (filepath string) error {
+func indexFile(filepath string) error {
 	file, err := os.Open(filepath)
 	if err != nil {
-		return err;
+		return err
 	}
 	defer file.Close()
 	var event = parser.ParserEvent{}
@@ -48,19 +48,15 @@ func indexFile (filepath string) error {
 		Next(&event)
 		if event.EventError != nil {
 			println("[EVENT ERROR]: ", event.EventError.Error())
-			return err;
+			return err
 		}
 		if event.Type == parser.ParserEventTypeEndDocument {
-			println("done parsing", filepath)
 			break
 		}
 		if event.Type == parser.ParserEventTypeTextNode {
-			print(string(event.EventBuffer), " ")
+			println(string(event.EventBuffer))
 		}
 	}
-	println();
-	println();
-	println();
-	println();
-	return nil;
+	println()
+	return nil
 }

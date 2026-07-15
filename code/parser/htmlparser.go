@@ -62,19 +62,21 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 		event.EventBuffer = event.EventBuffer[:0]
 		event.EventError = nil
 
-		nextbyte, _ = reader.read(skipWhiteSpace, dontConsumeFirstCharacter) // skip whitespace between tokens
+	functionStart:
+		nextbyte, _ = reader.readLowerCase(skipWhiteSpace, dontConsumeFirstCharacter) // skip whitespace between tokens
 		if nextbyte == 0 {
 			event.Type = ParserEventTypeEndDocument
 			return
 		}
-		/**/
+
+		/*these states are used to make sure we don't break out of an opening tag in between calls untill we've read the entire tag*/
 		if currentState == parserStateOpeningTag {
 			goto attributeKey
 		}
 
 		if currentState == parserStateAttributeKey {
 			if nextbyte == '=' {
-				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				reader.readLowerCase(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
 				goto attributeValue
 			}
 			goto attributeKey
@@ -86,8 +88,8 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 
 		/* tag */
 		if nextbyte == '<' {
-			reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
-			nextbyte, numberOfSpacesSkipped = reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
+			reader.readLowerCase(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+			nextbyte, numberOfSpacesSkipped = reader.readLowerCase(skipWhiteSpace, dontConsumeFirstCharacter)
 			if numberOfSpacesSkipped > 0 {
 				event.EventError = EventErrorInvalidWhiteSpace
 				return
@@ -97,14 +99,14 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 			// discard comments and document declaration
 			if nextbyte == '!' {
 				event.Type = ParserEventTypeComment
-				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
-				secondbyte, _ := reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
+				reader.readLowerCase(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				secondbyte, _ := reader.readLowerCase(skipWhiteSpace, dontConsumeFirstCharacter)
 				for {
-					nextbyte, _ = reader.read(skipWhiteSpace, consumeFirstCharacter)
+					nextbyte, _ = reader.readLowerCase(skipWhiteSpace, consumeFirstCharacter)
 					if nextbyte == '-' {
-						nextbyte, _ = reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+						nextbyte, _ = reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter)
 						if nextbyte == '-' {
-							nextbyte, _ = reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+							nextbyte, _ = reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter)
 							if nextbyte == '>' {
 								break
 							}
@@ -122,7 +124,7 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 			}
 
 			if nextbyte == '/' { // a closing tag
-				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				reader.readLowerCase(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
 				goto closingTag
 			}
 
@@ -142,28 +144,28 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 			event.Type = ParserEventTypeOpeningTag
 			// read upto the first space, or >
 			for {
-				nextbyte, _ = reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				nextbyte, _ = reader.readLowerCase(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 				if nextbyte == 0 {
 					event.EventError = EventErrorInvalidEndOfFile
 					break
 				}
 				if nextbyte == '>' {
-					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
 					currentState = parserStateUnknown
 					break
 				}
 				if unicode.IsSpace(rune(nextbyte)) {
-					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					nextbyte, _ = reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+					reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					nextbyte, _ = reader.readLowerCase(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 					if nextbyte == '>' {
-						reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
 						currentState = parserStateUnknown
 						break
 					}
 					break
 				}
 
-				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				b, _ := reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter)
 				event.EventBuffer = append(event.EventBuffer, b)
 			}
 			return
@@ -175,26 +177,26 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 			event.Type = ParserEventTypeAttributeKey
 			// read up until a space or '=' or >
 			for {
-				nextbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				nextbyte, _ := reader.readLowerCase(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 				if nextbyte == 0 {
 					event.EventError = EventErrorInvalidEndOfFile
 					return
 				}
 				if nextbyte == '=' || unicode.IsSpace(rune(nextbyte)) {
 					currentState = parserStateAttributeKey
-					nextbyte, _ := reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
+					nextbyte, _ := reader.readLowerCase(skipWhiteSpace, dontConsumeFirstCharacter)
 					if nextbyte == '>' {
-						reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
 						currentState = parserStateUnknown
 					}
 					return
 				}
 				if nextbyte == '>' {
-					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					currentState = parserStateUnknown                      // end of the openingTag
+					reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					currentState = parserStateUnknown                               // end of the openingTag
 					return
 				}
-				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				b, _ := reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter)
 				event.EventBuffer = append(event.EventBuffer, b)
 			}
 			return
@@ -206,12 +208,12 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 			event.Type = ParserEventTypeAttributeValue
 			// read up until '>' || space (outside quotes)
 			// discard quotes if any
-			firstbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+			firstbyte, _ := reader.readLowerCase(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 			if firstbyte == '\'' || firstbyte == '"' {
-				reader.read(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
+				reader.readLowerCase(skipWhiteSpace, consumeFirstCharacter) // discard delimiter
 			}
 			for {
-				nextbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				nextbyte, _ := reader.readLowerCase(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 				if nextbyte == 0 || nextbyte == '>' {
 					currentState = parserStateUnknown
 					break
@@ -221,17 +223,17 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 					break
 				}
 				if (nextbyte == '\'' && firstbyte == '\'') || (nextbyte == '"' && firstbyte == '"') {
-					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
-					nextbyte, _ := reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
+					reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					nextbyte, _ := reader.readLowerCase(skipWhiteSpace, dontConsumeFirstCharacter)
 					if nextbyte == '>' {
-						reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+						reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
 						currentState = parserStateUnknown
 					} else {
 						currentState = parserStateAttributeValue
 					}
 					break
 				}
-				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				b, _ := reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter)
 				event.EventBuffer = append(event.EventBuffer, b)
 			}
 			return
@@ -242,19 +244,19 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 			event.Type = ParserEventTypeClosingTag
 			// read up to >
 			for {
-				nextbyte, numberOfSpacesSkipped = reader.read(skipWhiteSpace, dontConsumeFirstCharacter)
+				nextbyte, numberOfSpacesSkipped = reader.readLowerCase(skipWhiteSpace, dontConsumeFirstCharacter)
 				if numberOfSpacesSkipped > 0 {
 					event.EventError = EventErrorInvalidWhiteSpace
 				}
 				if nextbyte == '>' {
-					reader.read(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
+					reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter) // discard delimiter
 					break
 				}
 				if nextbyte == 0 {
 					event.EventError = EventErrorInvalidEndOfFile
 					break
 				}
-				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
+				b, _ := reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter)
 				event.EventBuffer = append(event.EventBuffer, b)
 			}
 			return
@@ -265,16 +267,23 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 			event.Type = ParserEventTypeTextNode
 			// read up to space || <
 			for {
-				nextbyte, _ := reader.read(dontSkipWhiteSpace, dontConsumeFirstCharacter)
+				nextbyte, _ := reader.readLowerCase(dontSkipWhiteSpace, dontConsumeFirstCharacter)
 				if nextbyte == 0 {
 					event.EventError = EventErrorInvalidEndOfFile
 					break
 				}
 				if unicode.IsSpace(rune(nextbyte)) || nextbyte == '<' {
+					// EDGE CASE: skip returning an empty textNode
+					if !(len(event.EventBuffer) > 0){ 
+						goto functionStart;
+					}
 					break
 				}
-				b, _ := reader.read(dontSkipWhiteSpace, consumeFirstCharacter)
-				event.EventBuffer = append(event.EventBuffer, b)
+				b, _ := reader.readLowerCase(dontSkipWhiteSpace, consumeFirstCharacter)
+				// ignore punctuations
+				if !ignorePunctuation[b] {
+					event.EventBuffer = append(event.EventBuffer, b)
+				}
 			}
 			return
 		}
@@ -283,16 +292,22 @@ func ParseHTMLFile(file *os.File) func(*ParserEvent) {
 	}
 }
 
-/*
-if skipWhiteSpace is true,  nextByte will skip any tabs, spaces, newlines, carriage returns to get to the firs non whitespace character
-if skipWhiteSpace is false, nextByte will return the first byte it encounters, whether a whitespace character or not
-if consumeFirstCharacter is true, nextByte will consume the first character it encounters before returning it, meaning subsequent calls to nextByte will return the bytes after the consumed one
-if consumeFirstCharacter is false, nextByte will peek and return the byte, meaning a subsequent call will return the same byte as the one before
-at end of file, nextByte will return 0
-*/
-const (
-	skipWhiteSpace            = true
-	dontSkipWhiteSpace        = false
-	consumeFirstCharacter     = true
-	dontConsumeFirstCharacter = false
-)
+var ignorePunctuation = map[byte]bool{
+	// brackets and braces
+	'(': true, ')': true, '[': true, ']': true, '{': true, '}': true,
+
+	// sentence punctuation
+	',': true, '.': true, ':': true, ';': true, '?': true, '!': true,
+
+	// quotes and apostrophes
+	'\'': true, '"': true, '`': true,
+
+	// mathematical and slashes
+	'+': true, '-': true, '*': true, '/': true, '\\': true, '=': true, '<': true, '>': true,
+
+	// financial and commercial
+	'$': true, '%': true, '@': true, '&': true, '_': false,
+
+	// connectors and miscellaneous
+	'#': true, '^': true, '~': true, '|': true,
+}

@@ -8,10 +8,11 @@ import (
 )
 
 type fileReader struct {
-	buf   *bufio.Reader
-	line  uint64
-	cache byte
+	buf         *bufio.Reader
+	line        uint64
+	cache       byte
 }
+
 func newFileReader(file *os.File) *fileReader {
 	return &fileReader{
 		line:  1,
@@ -21,23 +22,43 @@ func newFileReader(file *os.File) *fileReader {
 }
 
 /*
- */
-func (reader *fileReader) read(skipWhiteSpace bool, consumeFirstCharacter bool) (byte, int) {
-	var numberOfSpacesSkipped int = 0;
+if skipWhiteSpace is true,  nextByte will skip any tabs, spaces, newlines, carriage returns to get to the firs non whitespace character
+if skipWhiteSpace is false, nextByte will return the first byte it encounters, whether a whitespace character or not
+if consumeFirstCharacter is true, nextByte will consume the first character it encounters before returning it, meaning subsequent calls to nextByte will return the bytes after the consumed one
+if consumeFirstCharacter is false, nextByte will peek and return the byte, meaning a subsequent call will return the same byte as the one before
+at end of file, nextByte will return 0
+*/
+const (
+	skipWhiteSpace            = true
+	dontSkipWhiteSpace        = false
+	consumeFirstCharacter     = true
+	dontConsumeFirstCharacter = false
+)
+
+func (reader *fileReader) readLowerCase(skipWhiteSpace bool, consumeFirstCharacter bool) (byte, int) {
+	var (
+		numberOfSpacesSkipped int = 0
+		nextbyte              byte
+		ok                    bool = false
+		nextCharacter         rune
+		size                  int
+		err                   error
+	)
+
 	if reader.cache != 0 {
-		var b = reader.cache
-		if skipWhiteSpace && unicode.IsSpace(rune(b)) {
+		nextbyte = reader.cache
+		if skipWhiteSpace && unicode.IsSpace(rune(nextbyte)) {
 			reader.cache = 0
-			goto read;
+			goto read
 		}
 		if consumeFirstCharacter {
 			reader.cache = 0
 		}
-		return b, 0;
+		goto returnByte
 	}
 
 read:
-	nextCharacter, size, err := reader.buf.ReadRune()
+	nextCharacter, size, err = reader.buf.ReadRune()
 	if err == io.EOF {
 		return 0, 0
 	}
@@ -45,23 +66,30 @@ read:
 		reader.line++
 	}
 	if unicode.IsSpace(nextCharacter) && skipWhiteSpace {
-		numberOfSpacesSkipped++;
+		numberOfSpacesSkipped++
 		goto read
 	}
 	if size == 1 {
+		nextbyte = byte(nextCharacter)
 		if !consumeFirstCharacter {
-			reader.cache = byte(nextCharacter);
+			reader.cache = nextbyte
 		}
-		return byte(nextCharacter), numberOfSpacesSkipped
+		goto returnByte
 	}
 
-	if b, ok := baseRune[nextCharacter]; ok {
+	if nextbyte, ok = baseRune[nextCharacter]; ok {
 		if !consumeFirstCharacter {
-			reader.cache = b;
+			reader.cache = nextbyte
 		}
-		return b, numberOfSpacesSkipped;
+		goto returnByte
 	}
 	goto read // ignore any character we cannot decompose
+
+returnByte:
+	if nextbyte >= 'A' && nextbyte <= 'Z' {
+		nextbyte = nextbyte + 32 // lowercase
+	}
+	return nextbyte, numberOfSpacesSkipped
 }
 
 var baseRune = map[rune]byte{
@@ -139,3 +167,12 @@ var baseRune = map[rune]byte{
 	'Ź': 'Z', 'Ż': 'Z', 'Ž': 'Z',
 	'ź': 'z', 'ż': 'z', 'ž': 'z',
 }
+
+// var punctuations = []byte{
+// 	'(', ')', '[', ']', '{', '}',
+// 	',', '.', ':', ';', '?', '!',
+// 	'\'', '"', '`',
+// 	'+', '-', '*', '/', '\\', '=', '<', '>',
+// 	'$', '%', '@', '&',
+// 	'_', '#', '^', '~', '|',
+// }
