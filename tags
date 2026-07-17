@@ -32,15 +32,14 @@
 !_TAG_KIND_DESCRIPTION!Go	s,struct	/structs/
 !_TAG_KIND_DESCRIPTION!Go	t,type	/types/
 !_TAG_KIND_DESCRIPTION!Go	v,var	/variables/
-!_TAG_KIND_DESCRIPTION!HTML	C,stylesheet	/stylesheets/
-!_TAG_KIND_DESCRIPTION!HTML	I,id	/identifiers/
-!_TAG_KIND_DESCRIPTION!HTML	J,script	/scripts/
-!_TAG_KIND_DESCRIPTION!HTML	a,anchor	/named anchors/
-!_TAG_KIND_DESCRIPTION!HTML	c,class	/classes/
-!_TAG_KIND_DESCRIPTION!HTML	h,heading1	/H1 headings/
-!_TAG_KIND_DESCRIPTION!HTML	i,heading2	/H2 headings/
-!_TAG_KIND_DESCRIPTION!HTML	j,heading3	/H3 headings/
-!_TAG_KIND_DESCRIPTION!HTML	t,title	/titles/
+!_TAG_KIND_DESCRIPTION!Markdown	S,subsection	/level 2 sections/
+!_TAG_KIND_DESCRIPTION!Markdown	T,l4subsection	/level 4 sections/
+!_TAG_KIND_DESCRIPTION!Markdown	c,chapter	/chapters/
+!_TAG_KIND_DESCRIPTION!Markdown	h,hashtag	/hashtags/
+!_TAG_KIND_DESCRIPTION!Markdown	n,footnote	/footnotes/
+!_TAG_KIND_DESCRIPTION!Markdown	s,section	/sections/
+!_TAG_KIND_DESCRIPTION!Markdown	t,subsubsection	/level 3 sections/
+!_TAG_KIND_DESCRIPTION!Markdown	u,l5subsection	/level 5 sections/
 !_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
 !_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
 !_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
@@ -48,7 +47,7 @@
 !_TAG_PARSER_VERSION!DTD	0.0	/current.age/
 !_TAG_PARSER_VERSION!DosBatch	0.0	/current.age/
 !_TAG_PARSER_VERSION!Go	0.0	/current.age/
-!_TAG_PARSER_VERSION!HTML	0.0	/current.age/
+!_TAG_PARSER_VERSION!Markdown	1.1	/current.age/
 !_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
 !_TAG_PROC_CWD	C:/Users/Collins/playground/gogle/	//
 !_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
@@ -61,41 +60,43 @@
 !_TAG_ROLE_DESCRIPTION!DTD!parameterEntity	partOfAttDef	/part of attribute definition/
 !_TAG_ROLE_DESCRIPTION!Go!package	imported	/imported package/
 !_TAG_ROLE_DESCRIPTION!Go!unknown	receiverType	/receiver type/
-!_TAG_ROLE_DESCRIPTION!HTML!class	attribute	/assigned as attributes/
-!_TAG_ROLE_DESCRIPTION!HTML!script	extFile	/referenced as external files/
-!_TAG_ROLE_DESCRIPTION!HTML!stylesheet	extFile	/referenced as external files/
-Attribute	./code/sax/sax.go	/^	Attribute map[string]string \/\/ defined\/changes at EventTypeAttribute$/;"	m	struct:sax.Event	typeref:typename:map[string]string
-Event	./code/sax/sax.go	/^type Event struct {$/;"	s	package:sax
-EventType	./code/sax/sax.go	/^type EventType int$/;"	t	package:sax	typeref:typename:int
-EventTypeAttribute	./code/sax/sax.go	/^	EventTypeAttribute                      \/\/ triggered right after the h in <a href="example.co/;"	c	package:sax
-EventTypeClosingTag	./code/sax/sax.go	/^	EventTypeClosingTag                     \/\/ triggered right after the \/ in <\/html> is read (/;"	c	package:sax
-EventTypeEndDocument	./code/sax/sax.go	/^	EventTypeEndDocument                    \/\/ triggered right after the > symbol of <\/html> is /;"	c	package:sax
-EventTypeOpeningTag	./code/sax/sax.go	/^	EventTypeOpeningTag                     \/\/ triggered right after the h in <html> is read (and/;"	c	package:sax
-EventTypeStartDocument	./code/sax/sax.go	/^	EventTypeStartDocument                  \/\/ triggered right before the < symbol of <html> is r/;"	c	package:sax
-EventTypeTextNode	./code/sax/sax.go	/^	EventTypeTextNode      EventType = iota \/\/ "my", "name", "is", "collins" - an eventTextNode i/;"	c	package:sax	typeref:type:EventType
-InvalidFilePath	./code/sax/sax.go	/^	InvalidFilePath = errors.New("Invalid file path");$/;"	v	package:sax
-Latest Articles	./build/sample.html	/^            <h2>Latest Articles<\/h2>$/;"	i
-Market Watch 2026	./build/sample.html	/^                <h3 class="article-title"><a href="https:\/\/example.com">Market Watch 2026<\/a>/;"	j
-ParseHTMLFile	./code/sax/sax.go	/^func ParseHTMLFile(filename string, callbackFunction func(*Event, error)) {$/;"	f	package:sax
-Product Inventory	./build/sample.html	/^            <h2>Product Inventory<\/h2>$/;"	i
-Sample Page for Parsing Practice	./build/sample.html	/^    <title>Sample Page for Parsing Practice<\/title>$/;"	j
-Tag	./code/sax/sax.go	/^	Tag       string            \/\/ defined\/changes at EventTypeOpeningTag, and EventTypeClosingT/;"	m	struct:sax.Event	typeref:typename:string
-Text	./code/sax/sax.go	/^	Text      string            \/\/ defined\/changes at EventTypeTextNode$/;"	m	struct:sax.Event	typeref:typename:string
-Type	./code/sax/sax.go	/^	Type      EventType$/;"	m	struct:sax.Event	typeref:typename:EventType
-Understanding AI Trends	./build/sample.html	/^								AI Trends<\/a><\/h3>$/;"	j
-Useful Links	./build/sample.html	/^        <h2>Useful Links<\/h2>$/;"	i
-Welcome to the Parsing Sandbox	./build/sample.html	/^        <h1 class="page-title">Welcome to the Parsing Sandbox<\/h1>$/;"	h
-articles	./build/sample.html	/^        <section class="content-section" id="articles">$/;"	I
-buffer	./code/sax/sax.go	/^	buffer       bytes.Buffer$/;"	m	struct:sax.fileStruct	typeref:typename:bytes.Buffer
-bufferLength	./code/sax/sax.go	/^	bufferLength int$/;"	m	struct:sax.fileStruct	typeref:typename:int
-data-table	./build/sample.html	/^        <section class="content-section" id="data-table">$/;"	I
-file	./code/sax/sax.go	/^	file         *os.File$/;"	m	struct:sax.fileStruct	typeref:typename:*os.File
-fileStruct	./code/sax/sax.go	/^type fileStruct struct {$/;"	s	package:sax
-index	./code/sax/sax.go	/^	index        int$/;"	m	struct:sax.fileStruct	typeref:typename:int
+Index	./code/index/index.go	/^func Index(file *os.File) {$/;"	f	package:index
+Type	./code/index/htmlparser.go	/^	Type        eventType$/;"	m	struct:index.parserEvent	typeref:typename:eventType
+baseRune	./code/index/htmlparser.go	/^var baseRune = map[rune]byte{$/;"	v	package:index
+buf	./code/index/htmlparser.go	/^	buf   *bufio.Reader$/;"	m	struct:index.fileReader	typeref:typename:*bufio.Reader
+cache	./code/index/htmlparser.go	/^	cache byte$/;"	m	struct:index.fileReader	typeref:typename:byte
+consumeFirstCharacter	./code/index/htmlparser.go	/^	consumeFirstCharacter     = true$/;"	c	package:index
+dontConsumeFirstCharacter	./code/index/htmlparser.go	/^	dontConsumeFirstCharacter = false$/;"	c	package:index
+dontSkipWhiteSpace	./code/index/htmlparser.go	/^	dontSkipWhiteSpace        = false$/;"	c	package:index
+eventBuffer	./code/index/htmlparser.go	/^	eventBuffer []byte$/;"	m	struct:index.parserEvent	typeref:typename:[]byte
+eventError	./code/index/htmlparser.go	/^	eventError  error$/;"	m	struct:index.parserEvent	typeref:typename:error
+eventErrorInvalidEndOfFile	./code/index/htmlparser.go	/^	eventErrorInvalidEndOfFile  = errors.New("Invalid end of file")$/;"	v	package:index
+eventErrorInvalidNewLine	./code/index/htmlparser.go	/^	eventErrorInvalidNewLine    = errors.New("Invalid new line")$/;"	v	package:index
+eventErrorInvalidTag	./code/index/htmlparser.go	/^	eventErrorInvalidTag        = errors.New("Invalid tag")$/;"	v	package:index
+eventErrorInvalidWhiteSpace	./code/index/htmlparser.go	/^	eventErrorInvalidWhiteSpace = errors.New("Invalid whitespace")$/;"	v	package:index
+eventType	./code/index/htmlparser.go	/^type eventType int$/;"	t	package:index	typeref:typename:int
+eventTypeAttributeKey	./code/index/htmlparser.go	/^	eventTypeAttributeKey                    \/\/ triggered right after the h in <a href="example.c/;"	c	package:index
+eventTypeAttributeValue	./code/index/htmlparser.go	/^	eventTypeAttributeValue                  \/\/ triggered right after the = in <a href="example.c/;"	c	package:index
+eventTypeClosingTag	./code/index/htmlparser.go	/^	eventTypeClosingTag                      \/\/ triggered right after the \/ in <\/html> is read /;"	c	package:index
+eventTypeComment	./code/index/htmlparser.go	/^	eventTypeComment                         \/\/$/;"	c	package:index
+eventTypeEndDocument	./code/index/htmlparser.go	/^	eventTypeEndDocument                     \/\/ triggered right after the > symbol of <\/html> is/;"	c	package:index
+eventTypeOpeningTag	./code/index/htmlparser.go	/^	eventTypeOpeningTag                      \/\/ triggered right after the h in <html> is read (an/;"	c	package:index
+eventTypeTextNode	./code/index/htmlparser.go	/^	eventTypeTextNode       eventType = iota \/\/ "my", "name", "is", "collins" - an eventTextNode /;"	c	package:index	typeref:type:eventType
+eventTypeUnknown	./code/index/htmlparser.go	/^	eventTypeUnknown                         \/\/ used to signal that an event.type is not set$/;"	c	package:index
+fileReader	./code/index/htmlparser.go	/^type fileReader struct {$/;"	s	package:index
+ignorePunctuation	./code/index/htmlparser.go	/^var ignorePunctuation = map[byte]bool{$/;"	v	package:index
+index	./code/index/htmlparser.go	/^package index$/;"	p
+index	./code/index/index.go	/^package index$/;"	p
+line	./code/index/htmlparser.go	/^	line  uint64$/;"	m	struct:index.fileReader	typeref:typename:uint64
 main	./code/main.go	/^func main() {$/;"	f	package:main
 main	./code/main.go	/^package main$/;"	p
-main-footer	./build/sample.html	/^    <footer id="main-footer">$/;"	I
-main-header	./build/sample.html	/^    <header id="main-header">$/;"	I
-nextByte	./code/sax/sax.go	/^func nextByte(fs *fileStruct, skipWhiteSpace bool, consumeFirstCharacter bool) byte {$/;"	f	package:sax	typeref:typename:byte
-parserStateStart	./code/sax/sax.go	/^	parserStateStart int = iota$/;"	c	package:sax	typeref:typename:int
-sax	./code/sax/sax.go	/^package sax$/;"	p
+newFileReader	./code/index/htmlparser.go	/^func newFileReader(file *os.File) *fileReader {$/;"	f	package:index	typeref:typename:*fileReader
+parseHTMLFile	./code/index/htmlparser.go	/^func parseHTMLFile(file *os.File) func(*parserEvent) {$/;"	f	package:index	typeref:typename:func(*parserEvent)
+parserEvent	./code/index/htmlparser.go	/^type parserEvent struct {$/;"	s	package:index
+parserState	./code/index/htmlparser.go	/^type parserState byte$/;"	t	package:index	typeref:typename:byte
+parserStateAttributeKey	./code/index/htmlparser.go	/^	parserStateAttributeKey$/;"	c	package:index
+parserStateAttributeValue	./code/index/htmlparser.go	/^	parserStateAttributeValue$/;"	c	package:index
+parserStateOpeningTag	./code/index/htmlparser.go	/^	parserStateOpeningTag parserState = iota$/;"	c	package:index	typeref:type:parserState
+parserStateUnknown	./code/index/htmlparser.go	/^	parserStateUnknown$/;"	c	package:index
+readLowerCase	./code/index/htmlparser.go	/^func (reader *fileReader) readLowerCase(skipWhiteSpace bool, consumeFirstCharacter bool) (byte, /;"	f	struct:index.fileReader	typeref:typename:(byte, int)
+skipWhiteSpace	./code/index/htmlparser.go	/^	skipWhiteSpace            = true$/;"	c	package:index
