@@ -41,7 +41,7 @@ var (
 )
 
 type parserEvent struct {
-	eventType        eventType
+	eventType   eventType
 	eventBuffer []byte
 	eventError  error
 }
@@ -55,6 +55,9 @@ const (
 	parserStateAttributeValue
 )
 
+/*
+	this is an implmentation of an html event-based parser
+*/
 func parseHTMLFile(file *os.File) func(*parserEvent) {
 	var nextbyte byte
 	var numberOfSpacesSkipped int
@@ -295,26 +298,6 @@ func parseHTMLFile(file *os.File) func(*parserEvent) {
 	}
 }
 
-var ignorePunctuation = map[byte]bool{
-	// brackets and braces
-	'(': true, ')': true, '[': true, ']': true, '{': true, '}': true,
-
-	// sentence punctuation
-	',': true, '.': true, ':': true, ';': true, '?': true, '!': true,
-
-	// quotes and apostrophes
-	'\'': true, '"': true, '`': true,
-
-	// mathematical and slashes
-	'+': true, '-': true, '*': true, '/': true, '\\': true, '=': true, '<': true, '>': true,
-
-	// financial and commercial
-	'$': true, '%': true, '@': true, '&': true, '_': false,
-
-	// connectors and miscellaneous
-	'#': true, '^': true, '~': true, '|': true,
-}
-
 /** fileReader **/
 type fileReader struct {
 	buf   *bufio.Reader
@@ -380,25 +363,50 @@ read:
 	}
 	if size == 1 {
 		nextbyte = byte(nextCharacter)
-		if !consumeFirstCharacter {
-			reader.cache = nextbyte
-		}
+		// if !consumeFirstCharacter {
+		// 	reader.cache = nextbyte
+		// }
 		goto returnByte
 	}
 
+	// NOTE: if you change , make sure to change the normalize function too
 	if nextbyte, ok = baseRune[nextCharacter]; ok {
-		if !consumeFirstCharacter {
-			reader.cache = nextbyte
-		}
+		// if !consumeFirstCharacter {
+		// 	reader.cache = nextbyte
+		// }
 		goto returnByte
 	}
+	// NOTE: if you change , make sure to change the normalize function too
 	goto read // ignore any character we cannot decompose
 
 returnByte:
 	if nextbyte >= 'A' && nextbyte <= 'Z' {
 		nextbyte = nextbyte + 32 // lowercase
 	}
+	if !consumeFirstCharacter {
+		reader.cache = nextbyte
+	}
 	return nextbyte, numberOfSpacesSkipped
+}
+
+var ignorePunctuation = map[byte]bool{
+	// brackets and braces
+	'(': true, ')': true, '[': true, ']': true, '{': true, '}': true,
+
+	// sentence punctuation
+	',': true, '.': true, ':': true, ';': true, '?': true, '!': true,
+
+	// quotes and apostrophes
+	'\'': true, '"': true, '`': true,
+
+	// mathematical and slashes
+	'+': true, '-': true, '*': true, '/': true, '\\': true, '=': true, '<': true, '>': true,
+
+	// financial and commercial
+	'$': true, '%': true, '@': true, '&': true, '_': false,
+
+	// connectors and miscellaneous
+	'#': true, '^': true, '~': true, '|': true,
 }
 
 var baseRune = map[rune]byte{

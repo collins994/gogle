@@ -33,8 +33,8 @@ func Index() func(*os.File) {
 			}
 
 			if event.eventType == eventTypeTextNode {
-				// terms[index] = string(event.eventBuffer)
 				terms = append(terms, string(event.eventBuffer))
+				// terms = append(terms, string(event.eventBuffer))
 				index++
 			}
 		}
