@@ -42,7 +42,10 @@ func Index() func(*os.File) {
 		sort.Strings(terms)
 
 		for index = 0; index < len(terms); index++ {
-			fmt.Printf("(%s, %s)\n", terms[index], filename)
+			// fmt.Printf("(%s, %s)\n", terms[index], filename)
+			var term = []byte(terms[index]);
+			porterStem(&term);
+			fmt.Printf("(%s ==> %s, %s)\n", terms[index], string(term), filename)
 		}
 	}
 }
