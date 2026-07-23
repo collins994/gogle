@@ -34,5 +34,14 @@ func Index() func(*os.File) {
 				println(string(event.eventBuffer))
 			}
 		}
+<<<<<<< HEAD
+=======
+
+		sort.Strings(terms)
+
+		for index = 0; index < len(terms); index++ {
+			fmt.Printf("(%s, %s)\n", terms[index], filename)
+		}
+>>>>>>> parent of 12bfbf1 (stemming)
 	}
 }
