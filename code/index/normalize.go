@@ -83,9 +83,6 @@ func porterStem(input *[]byte) {
 			// goto thirdLastByte
 			return false
 		} else if currentByte == 'y' {
-			if index == 0 {
-				return false;
-			}
 			currentByte = (input)[index-1]
 			if currentByte == 'a' || currentByte == 'e' || currentByte == 'i' || currentByte == 'o' || currentByte == 'u' {
 				// goto endOfStep1b // the character preceeding y is a vowel, therefore y is a consonant, breaking the cvc condition

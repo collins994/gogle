@@ -3,23 +3,26 @@ package index
 import (
 	"fmt"
 	"os"
-	// "sort"
+	"sort"
 )
 
 func Index() func(*os.File) {
 	var (
 		event         = parserEvent{}
-		NextEventFunc func(*parserEvent)
+		terms         = make([]string, (0), 1024)
+		index     int = 0
+		filename  string
+		NextEvent func(*parserEvent)
 	)
 
 	return func(file *os.File) {
+		filename = file.Name()
 		event.eventType = eventTypeUnknown
 		event.eventBuffer = make([]byte, 1024)
 
-		println("[INDEXING]: ", file.Name())
-		NextEventFunc = parseHTMLFile(file)
+		NextEvent = parseHTMLFile(file)
 		for {
-			NextEventFunc(&event)
+			NextEvent(&event)
 			if event.eventError != nil {
 				fmt.Printf("[ERROR]: %v\n", event.eventError)
 				break
@@ -30,9 +33,19 @@ func Index() func(*os.File) {
 			}
 
 			if event.eventType == eventTypeTextNode {
-				// porterStem(&event.eventBuffer)
-				println(string(event.eventBuffer))
+				terms = append(terms, string(event.eventBuffer))
+				// terms = append(terms, string(event.eventBuffer))
+				index++
 			}
+		}
+
+		sort.Strings(terms)
+
+		for index = 0; index < len(terms); index++ {
+			// fmt.Printf("(%s, %s)\n", terms[index], filename)
+			var term = []byte(terms[index]);
+			porterStem(&term);
+			fmt.Printf("(%s ==> %s, %s)\n", terms[index], string(term), filename)
 		}
 	}
 }

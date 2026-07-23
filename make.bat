@@ -5,11 +5,6 @@ if "%1" == "" (
 	exit /b
 )
 
-if "%1" == "test" (
-	go test .\code\reader\
-	exit /b
-)
-
 if "%1" == "build" (
 	pushd build
 	go build -gcflags="all=-N -l" -o gogle.exe ..\code

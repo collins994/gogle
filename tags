@@ -60,24 +60,20 @@
 !_TAG_ROLE_DESCRIPTION!DTD!parameterEntity	partOfAttDef	/part of attribute definition/
 !_TAG_ROLE_DESCRIPTION!Go!package	imported	/imported package/
 !_TAG_ROLE_DESCRIPTION!Go!unknown	receiverType	/receiver type/
-Index	./code/index/index.go	/^func Index() func(*os.File) {$/;"	f	package:index	typeref:typename:func(*os.File)
-ParseHTML	./code/parser/parser.go	/^func ParseHTML(file *os.File) func(*Event) {$/;"	f	package:index	typeref:typename:func(*Event)
-Reader	./code/reader/reader.go	/^type Reader struct {$/;"	s	package:reader
-TestReadByte	./code/reader/reader_test.go	/^func TestReadByte(t *testing.T) {$/;"	f	package:reader
-baseRune	./code/reader/reader.go	/^var baseRune = map[rune]byte{$/;"	v	package:reader
-buf	./code/index/reader.go	/^	buf   *bufio.Reader$/;"	m	struct:index.fileReader	typeref:typename:*bufio.Reader
-buffer	./code/reader/reader.go	/^	buffer io.RuneReader$/;"	m	struct:reader.Reader	typeref:typename:io.RuneReader
-cache	./code/index/reader.go	/^	cache byte$/;"	m	struct:index.fileReader	typeref:typename:byte
-consumeFirstCharacter	./code/index/reader.go	/^	consumeFirstCharacter     = true$/;"	c	package:index
-dontConsumeFirstCharacter	./code/index/reader.go	/^	dontConsumeFirstCharacter = false$/;"	c	package:index
-dontSkipWhiteSpace	./code/index/reader.go	/^	dontSkipWhiteSpace        = false$/;"	c	package:index
+Index	./code/index/index.go	/^func Index(file *os.File) {$/;"	f	package:index
+Type	./code/index/htmlparser.go	/^	Type        eventType$/;"	m	struct:index.parserEvent	typeref:typename:eventType
+baseRune	./code/index/htmlparser.go	/^var baseRune = map[rune]byte{$/;"	v	package:index
+buf	./code/index/htmlparser.go	/^	buf   *bufio.Reader$/;"	m	struct:index.fileReader	typeref:typename:*bufio.Reader
+cache	./code/index/htmlparser.go	/^	cache byte$/;"	m	struct:index.fileReader	typeref:typename:byte
+consumeFirstCharacter	./code/index/htmlparser.go	/^	consumeFirstCharacter     = true$/;"	c	package:index
+dontConsumeFirstCharacter	./code/index/htmlparser.go	/^	dontConsumeFirstCharacter = false$/;"	c	package:index
+dontSkipWhiteSpace	./code/index/htmlparser.go	/^	dontSkipWhiteSpace        = false$/;"	c	package:index
 eventBuffer	./code/index/htmlparser.go	/^	eventBuffer []byte$/;"	m	struct:index.parserEvent	typeref:typename:[]byte
 eventError	./code/index/htmlparser.go	/^	eventError  error$/;"	m	struct:index.parserEvent	typeref:typename:error
 eventErrorInvalidEndOfFile	./code/index/htmlparser.go	/^	eventErrorInvalidEndOfFile  = errors.New("Invalid end of file")$/;"	v	package:index
 eventErrorInvalidNewLine	./code/index/htmlparser.go	/^	eventErrorInvalidNewLine    = errors.New("Invalid new line")$/;"	v	package:index
 eventErrorInvalidTag	./code/index/htmlparser.go	/^	eventErrorInvalidTag        = errors.New("Invalid tag")$/;"	v	package:index
 eventErrorInvalidWhiteSpace	./code/index/htmlparser.go	/^	eventErrorInvalidWhiteSpace = errors.New("Invalid whitespace")$/;"	v	package:index
-eventType	./code/index/htmlparser.go	/^	eventType   eventType$/;"	m	struct:index.parserEvent	typeref:typename:eventType
 eventType	./code/index/htmlparser.go	/^type eventType int$/;"	t	package:index	typeref:typename:int
 eventTypeAttributeKey	./code/index/htmlparser.go	/^	eventTypeAttributeKey                    \/\/ triggered right after the h in <a href="example.c/;"	c	package:index
 eventTypeAttributeValue	./code/index/htmlparser.go	/^	eventTypeAttributeValue                  \/\/ triggered right after the = in <a href="example.c/;"	c	package:index
@@ -87,19 +83,14 @@ eventTypeEndDocument	./code/index/htmlparser.go	/^	eventTypeEndDocument         
 eventTypeOpeningTag	./code/index/htmlparser.go	/^	eventTypeOpeningTag                      \/\/ triggered right after the h in <html> is read (an/;"	c	package:index
 eventTypeTextNode	./code/index/htmlparser.go	/^	eventTypeTextNode       eventType = iota \/\/ "my", "name", "is", "collins" - an eventTextNode /;"	c	package:index	typeref:type:eventType
 eventTypeUnknown	./code/index/htmlparser.go	/^	eventTypeUnknown                         \/\/ used to signal that an event.type is not set$/;"	c	package:index
-fileReader	./code/index/reader.go	/^type fileReader struct {$/;"	s	package:index
-ignorePunctuation	./code/reader/reader.go	/^var ignorePunctuation = map[byte]bool{$/;"	v	package:reader
+fileReader	./code/index/htmlparser.go	/^type fileReader struct {$/;"	s	package:index
+ignorePunctuation	./code/index/htmlparser.go	/^var ignorePunctuation = map[byte]bool{$/;"	v	package:index
 index	./code/index/htmlparser.go	/^package index$/;"	p
 index	./code/index/index.go	/^package index$/;"	p
-index	./code/index/normalize.go	/^package index$/;"	p
-index	./code/index/reader.go	/^package index$/;"	p
-index	./code/parser/parser.go	/^package index$/;"	p
-line	./code/index/reader.go	/^	line  uint64$/;"	m	struct:index.fileReader	typeref:typename:uint64
+line	./code/index/htmlparser.go	/^	line  uint64$/;"	m	struct:index.fileReader	typeref:typename:uint64
 main	./code/main.go	/^func main() {$/;"	f	package:main
 main	./code/main.go	/^package main$/;"	p
-n	./rename_files.bat	/^set n=1$/;"	v
-newFileReader	./code/index/reader.go	/^func newFileReader(file *os.File) *fileReader {$/;"	f	package:index	typeref:typename:*fileReader
-newReader	./code/reader/reader.go	/^func newReader[T *os.File | string](input T) *Reader {$/;"	f	package:reader	typeref:typename:(input T) *
+newFileReader	./code/index/htmlparser.go	/^func newFileReader(file *os.File) *fileReader {$/;"	f	package:index	typeref:typename:*fileReader
 parseHTMLFile	./code/index/htmlparser.go	/^func parseHTMLFile(file *os.File) func(*parserEvent) {$/;"	f	package:index	typeref:typename:func(*parserEvent)
 parserEvent	./code/index/htmlparser.go	/^type parserEvent struct {$/;"	s	package:index
 parserState	./code/index/htmlparser.go	/^type parserState byte$/;"	t	package:index	typeref:typename:byte
@@ -107,11 +98,5 @@ parserStateAttributeKey	./code/index/htmlparser.go	/^	parserStateAttributeKey$/;
 parserStateAttributeValue	./code/index/htmlparser.go	/^	parserStateAttributeValue$/;"	c	package:index
 parserStateOpeningTag	./code/index/htmlparser.go	/^	parserStateOpeningTag parserState = iota$/;"	c	package:index	typeref:type:parserState
 parserStateUnknown	./code/index/htmlparser.go	/^	parserStateUnknown$/;"	c	package:index
-porterStem	./code/index/normalize.go	/^func porterStem(input *[]byte) {$/;"	f	package:index
-readByte	./code/reader/reader.go	/^func (reader *Reader) readByte(target *byte) {$/;"	f	struct:reader.Reader
-readLowerCase	./code/index/reader.go	/^func (reader *fileReader) readLowerCase(skipWhiteSpace bool, consumeFirstCharacter bool) (byte, /;"	f	struct:index.fileReader	typeref:typename:(byte, int)
-readNormalized	./code/index/reader.go	/^func (reader *fileReader) readNormalized(skipWhiteSpace bool, consumeFirstCharacter bool) (byte,/;"	f	struct:index.fileReader	typeref:typename:(byte, int)
-readNormalized	./code/reader/reader.go	/^func (reader *Reader) readNormalized(target *[]byte, stopAtDelimiter byte) int {$/;"	f	struct:reader.Reader	typeref:typename:int
-reader	./code/reader/reader.go	/^package reader$/;"	p
-reader	./code/reader/reader_test.go	/^package reader$/;"	p
-skipWhiteSpace	./code/index/reader.go	/^	skipWhiteSpace            = true$/;"	c	package:index
+readLowerCase	./code/index/htmlparser.go	/^func (reader *fileReader) readLowerCase(skipWhiteSpace bool, consumeFirstCharacter bool) (byte, /;"	f	struct:index.fileReader	typeref:typename:(byte, int)
+skipWhiteSpace	./code/index/htmlparser.go	/^	skipWhiteSpace            = true$/;"	c	package:index
