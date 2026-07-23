@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 package index
 
 // lowercase all the letters
@@ -375,17 +374,3 @@ func porterStem(input *[]byte) {
 		endOfStep5b:
 	}
 }
-=======
-package index
-
-// lowercase all the letters
-// remove punctuations
-func normalize(input []byte) {
-	var measure = func(input []byte) int {
-		return 1
-	}
-
-	var m = measure([]byte("colllins"))
-	println(m)
-}
->>>>>>> parent of 12bfbf1 (stemming)
