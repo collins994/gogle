@@ -3,20 +3,50 @@ package main
 import (
 	"fmt"
 	"github.com/collins994/gogle/code/index"
+	// "github.com/collins994/gogle/code/parser"
 	"os"
 )
+
+// func main2() {
+// 	var index = 0;
+// 	for {
+// 		println(index % 3);
+// 		if index == 20 {
+// 			break;
+// 		}
+// 		index++;
+// 	}
+// }
+// func main() {
+// 	file, err := os.Open("gl2/1.xhtml")
+// 	if err != nil {
+// 		fmt.Printf("[ERROR]: %v\n", err)
+// 	}
+// 	var event = parser.Event{}
+// 	event.Buffer = make([]byte, 1024)
+// 	var NextFunc = parser.ParseHTML(file)
+// 	for index := 0; index < 2; index++ {
+// 		event.Error = nil
+// 		NextFunc(&event)
+// 		if err != nil {
+// 			println(event.Error.Error())
+// 		}
+// 		println("EventType: ", event.Type)
+// 	}
+// }
 
 func main() {
 	var IndexFile = index.Index()
 
-	// for count := 1; count <= 1; count++ {
-	for count := 1; count < 352; count++ {
+	// for count := 1; count < 352; count++ {
+	for count := 1; count < 2; count++ {
 		file, err := os.Open(fmt.Sprintf("gl2/%d.xhtml", count))
 		if err != nil {
 			fmt.Printf("[ERROR]: %v\n", err)
 			continue
 		}
 		IndexFile(file)
+		file.Close()
 	}
 }
 
@@ -32,7 +62,7 @@ func main() {
 // 		"adjustment", "dependent", "adoption", "homologou", "communism", "activate", "angulariti", "homologous", "effective", "bowdlerize",
 // 		"probate", "rate", "cease", "controll", "roll",
 // 	}
-// 
+//
 // 	for _, n := range names {
 // 		var name = []byte(n)
 // 		normalize(&name)
@@ -67,7 +97,7 @@ func main() {
 // 		return m
 // 	}
 // 	// end of measure function variable
-// 
+//
 // 	var containsVowel = func(input []byte) bool {
 // 		var currentByte byte
 // 		for index := 0; index < len(input); index++ {
@@ -88,13 +118,13 @@ func main() {
 // 		return false
 // 	}
 // 	// end of containsVowel function variable
-// 
+//
 // 	var endsInCVC = func(input []byte) bool {
 // 		// read from the end
 // 		var inputLen = len(input)
 // 		var index uint = uint(inputLen - 1)
 // 		var currentByte byte
-// 
+//
 // 		/* check for the cvc condition */
 // 		// last byte
 // 		currentByte = (input)[index]
@@ -110,7 +140,7 @@ func main() {
 // 				}
 // 			}
 // 		}
-// 
+//
 // 		// second last byte
 // 		index--
 // 		currentByte = (input)[index]
@@ -127,7 +157,7 @@ func main() {
 // 				return false
 // 			}
 // 		}
-// 
+//
 // 		// third last byte
 // 		index--
 // 		currentByte = (input)[index]
@@ -143,7 +173,7 @@ func main() {
 // 		}
 // 		return true
 // 	}
-// 
+//
 // 	var inputLen int
 // 	// step 1a
 // 	// NOTE: we start with the longest suffix, order matters
@@ -158,7 +188,7 @@ func main() {
 // 			*input = (*input)[:inputLen-1]
 // 		}
 // 	}
-// 
+//
 // 	// step 1b
 // 	{
 // 		inputLen = len(*input)
@@ -176,7 +206,7 @@ func main() {
 // 				*input = (*input)[:inputLen-3]
 // 			}
 // 		}
-// 
+//
 // 		inputLen = len(*input)
 // 		if inputLen > 2 && (string((*input)[(inputLen-2):inputLen]) == "at") { // at -> ate
 // 			*input = append(*input, 'e')
@@ -206,7 +236,7 @@ func main() {
 // 		}
 // 	endOfStep1b:
 // 	}
-// 
+//
 // 	// step 1c
 // 	{
 // 		inputLen = len(*input)
@@ -214,7 +244,7 @@ func main() {
 // 			(*input)[inputLen-1] = 'i'
 // 		}
 // 	}
-// 
+//
 // 	// step 2
 // 	{
 // 		inputLen = len(*input)
@@ -231,7 +261,7 @@ func main() {
 // 				*input = (*input)[:inputLen-2]
 // 			}
 // 		}
-// 
+//
 // 		if penultimateByte == 'c' {
 // 			if inputLen > 4 && string((*input)[(inputLen-4):inputLen]) == "enci" && measure((*input)[0:inputLen-4]) > 0 { // (m>0) ENCI->ENCE
 // 				(*input)[inputLen-1] = 'e'
@@ -241,7 +271,7 @@ func main() {
 // 				*input = (*input)[:inputLen-1]
 // 			}
 // 		}
-// 
+//
 // 		if penultimateByte == 'l' {
 // 			if inputLen > 4 && string((*input)[(inputLen-4):inputLen]) == "abli" && measure((*input)[0:inputLen-4]) > 0 { // (m>0) abli -> able
 // 				(*input)[inputLen-1] = 'e'
@@ -255,7 +285,7 @@ func main() {
 // 				*input = (*input)[:inputLen-2]
 // 			}
 // 		}
-// 
+//
 // 		if penultimateByte == 'o' {
 // 			if inputLen > 7 && string((*input)[(inputLen-7):inputLen]) == "ization" && measure((*input)[0:inputLen-7]) > 0 { // (m>0) ization -> ize
 // 				*input = (*input)[:inputLen-5]
@@ -268,7 +298,7 @@ func main() {
 // 				*input = append(*input, 'e')
 // 			}
 // 		}
-// 
+//
 // 		if penultimateByte == 's' {
 // 			if inputLen > 5 && string((*input)[(inputLen-5):inputLen]) == "alism" && measure((*input)[0:inputLen-5]) > 0 { // (m>0) alism -> al
 // 				*input = (*input)[:inputLen-3]
@@ -280,7 +310,7 @@ func main() {
 // 				*input = (*input)[:inputLen-4]
 // 			}
 // 		}
-// 
+//
 // 		if penultimateByte == 't' {
 // 			if inputLen > 5 && string((*input)[(inputLen-5):inputLen]) == "aliti" && measure((*input)[0:inputLen-5]) > 0 { // (m>0) aliti -> al
 // 				*input = (*input)[:inputLen-3]
@@ -295,7 +325,7 @@ func main() {
 // 		}
 // 	endOfStep2:
 // 	}
-// 
+//
 // 	// step 3
 // 	{
 // 		inputLen = len(*input)
@@ -320,7 +350,7 @@ func main() {
 // 			*input = (*input)[:inputLen-4]
 // 		}
 // 	}
-// 
+//
 // 	// step 4
 // 	{
 // 		inputLen = len(*input)
@@ -372,7 +402,7 @@ func main() {
 // 		}
 // 	endOfStep4:
 // 	}
-// 
+//
 // 	// step 5a
 // 	{
 // 		inputLen = len(*input)
@@ -386,7 +416,7 @@ func main() {
 // 			}
 // 		}
 // 	}
-// 
+//
 // 	// steb 5b
 // 	{
 // 		inputLen = len(*input)
