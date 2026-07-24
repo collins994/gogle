@@ -12,6 +12,13 @@ if "%1" == "build" (
 	exit /b
 )
 
+if "%1" == "test" (
+	pushd code\index
+		go test -v
+	popd
+	exit /b
+)
+
 if "%1" == "run" (
 	pushd build
 		gogle.exe
